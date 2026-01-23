@@ -1,7 +1,9 @@
 """MCP Server implementation for StudyKB."""
 
+import asyncio
+
 from mcp.server import Server
-from mcp.server.stdio import stdio_server
+from mcp.server.sse import SseServerTransport
 from mcp.types import TextContent, Tool
 
 from .tools.grep import grep_handler
@@ -133,7 +135,7 @@ TOOLS = [
 📌 调用时机：
 - 需要定位某个知识点在资料中的具体位置时
 - 准备用 read_file 读取内容前，先查行号
-- 用户问"这个在书的哪里"时
+- 需要搜寻例题/教科书标准定义的
 
 🔗 推荐前置调用：
 - read_overview：确认资料存在且有 [IDX] 标记
@@ -143,8 +145,7 @@ TOOLS = [
 
 ⚠️ 注意：
 - 只有标记 [IDX] 的资料才有索引文件
-- 无索引时返回错误提示，建议改用 grep
-- 索引内容完整返回，可能较长""",
+- 没有索引文件的探索请改用 grep""",
         inputSchema={
             "type": "object",
             "properties": {
@@ -246,6 +247,64 @@ TOOLS = [
             "required": ["category", "pattern"],
         },
     ),
+    Tool(
+        name="batch_call",
+        description="""并行执行多个工具调用，一次返回所有结果。
+
+📌 调用时机：
+- 需要同时获取多个独立信息时（如：概览+进度+搜索）
+- 对话开始时一次性获取上下文
+- 任何可以并行的多个查询
+
+⚠️ 注意：
+- 理论上应将有依赖关系的调用分先后进行，但可试探性的批量调用以提升效率。
+  例如用户说"今天继续学数据结构"，即便应先获取总览确认大类名，但也可先尝试获取「数据结构」的进度，即便不存在也没有损失。诸如此类。
+- 强依赖路径的调用（如先 read_index/grep 再 read_file）避免放在同一批。
+- 单次最多 10 个并行调用
+
+💡 示例组合启发：
+
+1️⃣ 会话开始 - 用户说"开始学习/继续学习 X"：
+   read_overview + read_progress(category=X)
+   → 一次获取知识库全貌 + 该分类进度
+
+2️⃣ 探索知识点 - 用户问"X是什么/讲讲X"：
+   grep(pattern=X) + read_index(若有)
+   → 同时搜索关键词 + 获取索引定位
+
+3️⃣ 多关键词搜索 - 用户说"Prim和Kruskal有什么区别"：
+   grep(pattern=Prim) + grep(pattern=Kruskal)
+   → 同时搜索两个概念
+
+4️⃣ 批量状态更新 - 用户说"这几个我都会了"：
+   update_progress(id1, done) + update_progress(id2, done) + ...
+   → 多个进度并行更新""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "calls": {
+                    "type": "array",
+                    "description": "要并行执行的工具调用列表",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "tool": {
+                                "type": "string",
+                                "description": "工具名称",
+                            },
+                            "arguments": {
+                                "type": "object",
+                                "description": "工具参数",
+                            },
+                        },
+                        "required": ["tool", "arguments"],
+                    },
+                    "maxItems": 10,
+                },
+            },
+            "required": ["calls"],
+        },
+    ),
 ]
 
 # Tool handlers mapping
@@ -268,6 +327,10 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     """Handle tool calls."""
+    # 特殊处理 batch_call
+    if name == "batch_call":
+        return await _handle_batch_call(arguments)
+
     handler = HANDLERS.get(name)
     if not handler:
         return [TextContent(type="text", text=f"❌ Unknown tool: {name}")]
@@ -279,11 +342,89 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return [TextContent(type="text", text=f"❌ Error: {e}")]
 
 
-async def run_server() -> None:
-    """Run the MCP server with stdio transport."""
-    async with stdio_server() as (read_stream, write_stream):
+async def _handle_batch_call(arguments: dict) -> list[TextContent]:
+    """Handle batch_call tool - execute multiple tools in parallel."""
+    calls = arguments.get("calls", [])
+
+    if not calls:
+        return [TextContent(type="text", text="❌ batch_call: 'calls' 参数为空")]
+
+    if len(calls) > 10:
+        return [TextContent(type="text", text="❌ batch_call: 最多支持 10 个并行调用")]
+
+    async def execute_single(call: dict, index: int) -> str:
+        """Execute a single tool call and format result."""
+        tool_name = call.get("tool", "")
+        tool_args = call.get("arguments", {})
+
+        handler = HANDLERS.get(tool_name)
+        if not handler:
+            return f"## [{index + 1}] {tool_name}\n❌ Unknown tool: {tool_name}"
+
+        try:
+            result = await handler(tool_args)
+            return f"## [{index + 1}] {tool_name}\n{result}"
+        except Exception as e:
+            return f"## [{index + 1}] {tool_name}\n❌ Error: {e}"
+
+    # 并行执行所有调用
+    tasks = [execute_single(call, i) for i, call in enumerate(calls)]
+    results = await asyncio.gather(*tasks)
+
+    # 组合结果
+    combined = f"# batch_call 结果 ({len(calls)} 个调用)\n\n"
+    combined += "\n\n---\n\n".join(results)
+
+    return [TextContent(type="text", text=combined)]
+
+
+# SSE transport
+sse_transport = SseServerTransport("/messages/")
+
+
+# Create ASGI app
+from starlette.applications import Starlette
+from starlette.routing import Route, Mount
+from starlette.responses import Response
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+
+
+async def handle_sse(request):
+    """SSE endpoint handler.
+
+    Note: Must return a Response to avoid 'NoneType' error when client disconnects.
+    """
+    async with sse_transport.connect_sse(
+        request.scope, request.receive, request._send
+    ) as streams:
         await server.run(
-            read_stream,
-            write_stream,
-            server.create_initialization_options(),
+            streams[0], streams[1], server.create_initialization_options()
         )
+    # Return empty response to fix NoneType error
+    return Response()
+
+
+app = Starlette(
+    routes=[
+        Route("/sse", endpoint=handle_sse),
+        Mount("/messages/", app=sse_transport.handle_post_message),
+    ],
+    middleware=[
+        Middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    ],
+)
+
+
+async def run_server(host: str = "0.0.0.0", port: int = 8080) -> None:
+    """Run the MCP server with SSE transport."""
+    import uvicorn
+    config = uvicorn.Config(app, host=host, port=port, log_level="info")
+    server_instance = uvicorn.Server(config)
+    await server_instance.serve()
