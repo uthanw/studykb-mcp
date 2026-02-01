@@ -708,3 +708,4 @@ MIT License
 
 - [Model Context Protocol](https://modelcontextprotocol.io/) - Anthropic 开源的 AI 应用协议
 - [艾宾浩斯遗忘曲线](https://en.wikipedia.org/wiki/Forgetting_curve) - 科学记忆方法论
+# studykb-mcp
