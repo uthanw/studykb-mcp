@@ -1,0 +1,573 @@
+{
+  "category": "操作系统",
+  "last_updated": "2026-01-24T00:38:48.625710",
+  "entries": {
+    "os.ch1.basic.concept": {
+      "name": "操作系统的基本概念",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.567961",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch1.basic.features": {
+      "name": "操作系统的四大特征",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.575115",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch1.history.dev": {
+      "name": "操作系统发展历程",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.576799",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch1.env.mode": {
+      "name": "处理器运行模式",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.577599",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch1.env.interrupt": {
+      "name": "中断和异常",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.578354",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch1.env.syscall": {
+      "name": "系统调用",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.579063",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch1.structure": {
+      "name": "操作系统结构",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.579830",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch1.boot": {
+      "name": "操作系统引导",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.580533",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch1.vm": {
+      "name": "虚拟机基本概念",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.581230",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.process.concept": {
+      "name": "进程的概念和特征",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.581925",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.process.state": {
+      "name": "进程状态与转换",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.582705",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.process.control": {
+      "name": "进程控制",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.583384",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.process.comm": {
+      "name": "进程通信方式",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.584016",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.thread.model": {
+      "name": "线程和多线程模型",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.584890",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.schedule.concept": {
+      "name": "CPU调度概念",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.585536",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.schedule.fcfs": {
+      "name": "先来先服务调度算法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.586361",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.schedule.sjf": {
+      "name": "短作业优先调度算法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.587067",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.schedule.priority": {
+      "name": "优先级调度算法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.587798",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.schedule.rr": {
+      "name": "时间片轮转调度算法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.589880",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.schedule.mfq": {
+      "name": "多级反馈队列调度算法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.590914",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.sync.basic": {
+      "name": "同步与互斥基本概念",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.591658",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.sync.mutex": {
+      "name": "临界区互斥实现方法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.592674",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.sync.semaphore": {
+      "name": "信号量机制",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.595448",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.sync.producer_consumer": {
+      "name": "生产者-消费者问题",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.596115",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.sync.reader_writer": {
+      "name": "读者-写者问题",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.596880",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.sync.philosopher": {
+      "name": "哲学家进餐问题",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.597566",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.sync.monitor": {
+      "name": "管程",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.598241",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.deadlock.concept": {
+      "name": "死锁概念",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.598932",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.deadlock.prevention": {
+      "name": "死锁预防",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.599558",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.deadlock.avoidance": {
+      "name": "死锁避免与银行家算法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.600168",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch2.deadlock.detection": {
+      "name": "死锁检测与解除",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.600779",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.memory.basic": {
+      "name": "内存管理基本原理",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.601416",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.memory.contiguous": {
+      "name": "连续分配管理方式",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.602110",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.memory.paging": {
+      "name": "基本分页存储管理",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.603058",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.memory.segmentation": {
+      "name": "基本分段存储管理",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.603765",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.memory.segment_page": {
+      "name": "段页式存储管理",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.604472",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.vm.concept": {
+      "name": "虚拟内存基本概念",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.605190",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.vm.paging": {
+      "name": "请求分页管理方式",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.605907",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.vm.page_replace": {
+      "name": "页面置换算法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.606758",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch3.vm.address": {
+      "name": "地址翻译",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.607441",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.file.concept": {
+      "name": "文件的基本概念",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.608788",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.file.fcb_inode": {
+      "name": "文件控制块和索引节点",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.609588",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.file.logical": {
+      "name": "文件的逻辑结构",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.610320",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.file.physical": {
+      "name": "文件的物理结构",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.611061",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.file.protection": {
+      "name": "文件保护",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.611838",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.dir.basic": {
+      "name": "目录的基本概念",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.612575",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.dir.structure": {
+      "name": "目录结构",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.613566",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.dir.share": {
+      "name": "文件共享",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.614397",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.fs.structure": {
+      "name": "文件系统结构",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.615144",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.fs.layout": {
+      "name": "文件系统布局",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.615844",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.fs.space": {
+      "name": "文件存储空间管理",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.616552",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch4.fs.vfs": {
+      "name": "虚拟文件系统",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.617259",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.io.device": {
+      "name": "I/O设备分类",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.617988",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.io.control": {
+      "name": "I/O控制方式",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.618717",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.io.software": {
+      "name": "I/O软件层次结构",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.619459",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.io.interface": {
+      "name": "应用程序I/O接口",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.620204",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.dev.cache": {
+      "name": "高速缓存与缓冲区",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.620952",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.dev.alloc": {
+      "name": "设备分配与回收",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.621651",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.dev.spooling": {
+      "name": "SPOOLing技术",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.622403",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.disk.structure": {
+      "name": "磁盘结构与容量计算",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.623127",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.disk.management": {
+      "name": "磁盘管理",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.623879",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.disk.schedule": {
+      "name": "磁盘调度算法",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.624922",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    },
+    "os.ch5.disk.ssd": {
+      "name": "固态硬盘",
+      "status": "pending",
+      "comment": "",
+      "updated_at": "2026-01-24T00:38:48.625710",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null
+    }
+  }
+}

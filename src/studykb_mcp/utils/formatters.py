@@ -42,14 +42,12 @@ def format_overview(categories: list[Category]) -> str:
 def format_progress(
     progress: ProgressFile,
     status_filter: list[ProgressStatus] | None = None,
-    limit: int = 20,
 ) -> str:
     """Format progress data for display.
 
     Args:
         progress: Progress file data
         status_filter: Applied status filter (for header display)
-        limit: Applied limit (for footer display)
 
     Returns:
         Formatted TUI-style string
@@ -107,16 +105,10 @@ def format_progress(
             continue
 
         count = len(entries)
-        shown = entries[:limit] if limit > 0 else entries
-        more = count - len(shown)
-
-        if more > 0:
-            lines.append(f"## {emoji} {label} (showing {len(shown)}, +{more} more)")
-        else:
-            lines.append(f"## {emoji} {label} ({count})")
+        lines.append(f"## {emoji} {label} ({count})")
         lines.append("")
 
-        for entry_id, entry in shown:
+        for entry_id, entry in entries:
             # Main line
             if status == "review" and entry.next_review_at:
                 overdue = review_service.get_overdue_days(entry.next_review_at)
@@ -143,8 +135,6 @@ def format_progress(
 
     # Footer
     lines.append("---")
-    if limit > 0:
-        lines.append(f"Showing up to {limit} per group. Use limit=-1 to fetch all.")
 
     return "\n".join(lines)
 

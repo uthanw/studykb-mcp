@@ -1,0 +1,22 @@
+# StudyKB LLM API Configuration
+#
+# This file configures the LLM API for the initialization tools.
+# Environment variables can be used with ${VAR_NAME} syntax.
+#
+# Example:
+#   api_key: "${OPENAI_API_KEY}"
+#
+
+llm:
+  # API endpoint (OpenAI compatible)
+  base_url: "https://api.openai.com/v1"
+
+  # API key - recommended to use environment variable
+  api_key: "${OPENAI_API_KEY}"
+
+  # Model name
+  model: "gpt-4o"
+
+  # Generation parameters
+  temperature: 0.3
+  max_tokens: 4096

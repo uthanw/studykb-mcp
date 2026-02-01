@@ -71,7 +71,7 @@ class KBService:
 
                 materials.append(
                     Material(
-                        name=entry[:-3],  # Remove .md extension
+                        name=entry,  # Keep full filename with .md extension
                         line_count=line_count,
                         has_index=has_index,
                     )
@@ -119,7 +119,7 @@ class KBService:
 
         Args:
             category: Category name
-            material: Material name (without extension)
+            material: Material name (with .md extension)
             start_line: Starting line number (1-based, inclusive)
             end_line: Ending line number (1-based, inclusive)
             max_lines: Maximum number of lines to return (default from settings)
@@ -133,7 +133,7 @@ class KBService:
         if max_lines is None:
             max_lines = settings.max_read_lines
 
-        file_path = self.kb_path / category / f"{material}.md"
+        file_path = self.kb_path / category / material
 
         if not await aiofiles.os.path.exists(file_path):
             raise FileNotFoundError(f"Material not found: {category}/{material}")
@@ -162,12 +162,13 @@ class KBService:
 
         Args:
             category: Category name
-            material: Material name (without extension)
+            material: Material name (with .md extension)
 
         Returns:
             Index file content, or None if not found
         """
-        index_path = self.kb_path / category / f"{material}_index.md"
+        index_name = material.replace(".md", "_index.md")
+        index_path = self.kb_path / category / index_name
 
         if not await aiofiles.os.path.exists(index_path):
             return None
@@ -188,7 +189,7 @@ class KBService:
         Args:
             category: Category name
             pattern: Search pattern (case-insensitive)
-            material: Optional material name to search in (searches all if None)
+            material: Optional material name to search in (with .md extension, searches all if None)
             context_lines: Number of context lines before and after match
             max_matches: Maximum total matches to return (default from settings)
 
@@ -208,7 +209,7 @@ class KBService:
 
         if material:
             # Search single file
-            file_path = category_path / f"{material}.md"
+            file_path = category_path / material
             if await aiofiles.os.path.exists(file_path):
                 matches = await self._grep_file(file_path, pattern, context_lines, max_matches)
                 if matches:
@@ -232,10 +233,9 @@ class KBService:
                         file_path, pattern, context_lines, remaining
                     )
                     if matches:
-                        material_name = entry[:-3]
                         results.append(
                             GrepResult(
-                                material=material_name,
+                                material=entry,  # Keep full filename with .md
                                 matches=matches,
                                 total_matches=len(matches),
                             )
@@ -307,9 +307,9 @@ class KBService:
 
         Args:
             category: Category name
-            material: Material name (without extension)
+            material: Material name (with .md extension)
 
         Returns:
             True if material exists
         """
-        return await aiofiles.os.path.exists(self.kb_path / category / f"{material}.md")
+        return await aiofiles.os.path.exists(self.kb_path / category / material)

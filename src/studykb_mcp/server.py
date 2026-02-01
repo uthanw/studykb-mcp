@@ -11,7 +11,11 @@ from .tools.read_file import read_file_handler
 from .tools.read_index import read_index_handler
 from .tools.read_overview import read_overview_handler
 from .tools.read_progress import read_progress_handler
-from .tools.update_progress import update_progress_handler
+from .tools.update_progress import (
+    create_progress_handler,
+    delete_progress_handler,
+    update_progress_handler,
+)
 
 # Create MCP Server instance
 server = Server("studykb-mcp")
@@ -41,6 +45,9 @@ TOOLS = [
         name="read_progress",
         description="""获取某个大类的学习进度追踪数据。
 
+💡 最常用方式：只传 category，获取该分类的完整进度概览。
+   筛选器（status_filter/since）仅在特定需求下使用。
+
 📌 调用时机：
 - 用户说"继续学习""今天学什么"时，了解当前进度
 - 需要确定下一个学习内容时
@@ -66,18 +73,13 @@ TOOLS = [
                         "type": "string",
                         "enum": ["done", "active", "review", "pending"],
                     },
-                    "description": "筛选状态，可选值: done, active, review, pending",
+                    "description": "【可选·特定需求】筛选状态。不传则返回所有状态",
                 },
                 "since": {
                     "type": "string",
                     "enum": ["7d", "30d", "90d", "all"],
                     "default": "all",
-                    "description": "时间范围筛选，基于 updated_at",
-                },
-                "limit": {
-                    "type": "integer",
-                    "default": 20,
-                    "description": "每个状态分组的最大返回条数，设为 -1 返回全部",
+                    "description": "【可选·特定需求】时间范围筛选，基于 updated_at",
                 },
             },
             "required": ["category"],
@@ -85,20 +87,21 @@ TOOLS = [
     ),
     Tool(
         name="update_progress",
-        description="""创建或更新学习进度条目。
+        description="""更新已有的学习进度条目状态。
+
+⚠️ 重要：此工具仅用于更新【已存在】的进度节点，不会创建新节点。
 
 📌 调用时机：
-- 开始学习新知识点时 → status="active"
+- 开始学习某个知识点时 → status="active"
 - 用户表示掌握了某个知识点时 → status="done"
 - 用户说"这个要复习"或完成复习时 → status="review" / "done"
 - 用户更新对某个知识点的理解/笔记时 → 更新 comment
 
 🔗 推荐前置调用：
-- read_progress：确认当前状态，避免重复创建
+- read_progress：确认节点存在及当前状态
 
 ⚠️ 注意：
-- progress_id 使用点分格式，如 "ds.graph.mst.kruskal"
-- 首次创建时 name 必填，后续更新可省略
+- 如果 progress_id 不存在会报错
 - status 变为 done 时会自动设置 next_review 时间""",
         inputSchema={
             "type": "object",
@@ -109,23 +112,102 @@ TOOLS = [
                 },
                 "progress_id": {
                     "type": "string",
-                    "description": "进度标识，使用点分层级格式，如 'ds.graph.mst.kruskal'",
-                },
-                "name": {
-                    "type": "string",
-                    "description": "知识点名称，如 'Kruskal算法'（首次创建时必填）",
+                    "description": "已存在的进度标识，如 'ds.graph.mst.kruskal'",
                 },
                 "status": {
                     "type": "string",
-                    "enum": ["active", "done", "review"],
-                    "description": "状态: active(正在学习), done(已掌握), review(需要复习)",
+                    "enum": ["active", "done", "review", "pending"],
+                    "description": "状态: active(正在学习), done(已掌握), review(需要复习), pending(待学习)",
                 },
                 "comment": {
                     "type": "string",
                     "description": "一句话描述当前理解/进度/笔记",
                 },
             },
-            "required": ["category", "progress_id", "status", "comment"],
+            "required": ["category", "progress_id", "status"],
+        },
+    ),
+    Tool(
+        name="create_progress",
+        description="""创建新的学习进度节点。
+
+⚠️ 重要原则：
+1. 【避免随意创建】现有节点通常已涵盖大部分知识点，优先使用现有节点
+2. 【细粒度拆分】仅当现有节点粒度太粗、无法准确追踪学习进度时才创建
+3. 【配合删除使用】创建细粒度节点时，应同时删除被拆分的粗粒度节点
+
+📌 正确的创建场景：
+- 现有节点 "ds.sort" 太粗 → 拆分为 "ds.sort.bubble", "ds.sort.quick", "ds.sort.merge" 等
+- 学习了索引中没有的补充知识点
+- 用户明确要求添加新的追踪项
+
+🔗 推荐配合调用：
+- delete_progress：删除被拆分/取代的旧节点
+- read_progress：先确认现有节点结构
+
+💡 示例：
+拆分 "ds.tree.binary" 为更细粒度：
+1. create_progress: ds.tree.binary.traversal (二叉树遍历)
+2. create_progress: ds.tree.binary.bst (二叉搜索树)
+3. create_progress: ds.tree.binary.avl (AVL树)
+4. delete_progress: ds.tree.binary (删除旧的粗粒度节点)""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "description": "大类名称",
+                },
+                "progress_id": {
+                    "type": "string",
+                    "description": "新进度标识，使用点分层级格式，如 'ds.graph.mst.kruskal'",
+                },
+                "name": {
+                    "type": "string",
+                    "description": "知识点名称，如 'Kruskal算法'",
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["active", "done", "review", "pending"],
+                    "default": "pending",
+                    "description": "初始状态，默认 pending",
+                },
+                "comment": {
+                    "type": "string",
+                    "description": "备注（可选）",
+                },
+            },
+            "required": ["category", "progress_id", "name"],
+        },
+    ),
+    Tool(
+        name="delete_progress",
+        description="""删除学习进度节点。
+
+📌 调用时机：
+- 拆分粗粒度节点后，删除原节点
+- 合并多个细粒度节点为一个后，删除旧节点
+- 删除错误创建或不再需要的节点
+
+🔗 推荐配合调用：
+- create_progress：创建替代的新节点
+
+⚠️ 注意：
+- 删除操作不可恢复
+- 建议先创建新节点，确认无误后再删除旧节点""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "description": "大类名称",
+                },
+                "progress_id": {
+                    "type": "string",
+                    "description": "要删除的进度标识",
+                },
+            },
+            "required": ["category", "progress_id"],
         },
     ),
     Tool(
@@ -133,9 +215,10 @@ TOOLS = [
         description="""读取资料的索引文件，获取章节结构和行号映射。
 
 📌 调用时机：
+- 【重要】始终推荐尽早执行本工具以掌握资料内容
 - 需要定位某个知识点在资料中的具体位置时
 - 准备用 read_file 读取内容前，先查行号
-- 需要搜寻例题/教科书标准定义的
+- 需要搜寻例题/教科书标准定义
 
 🔗 推荐前置调用：
 - read_overview：确认资料存在且有 [IDX] 标记
@@ -155,7 +238,7 @@ TOOLS = [
                 },
                 "material": {
                     "type": "string",
-                    "description": "资料名称（不含扩展名），如 '王道数据结构'",
+                    "description": "资料文件名（含 .md 后缀），如 '王道数据结构.md'",
                 },
             },
             "required": ["category", "material"],
@@ -187,7 +270,7 @@ TOOLS = [
                 },
                 "material": {
                     "type": "string",
-                    "description": "资料名称（不含扩展名）",
+                    "description": "资料文件名（含 .md 后缀），如 '王道数据结构.md'",
                 },
                 "start_line": {
                     "type": "integer",
@@ -211,6 +294,9 @@ TOOLS = [
 - 用户问"xxx在哪里提到过"时
 - 需要查找某个概念的所有出现位置时
 
+🔗 推荐前置调用：
+- read_index：应先确认资料是否存在索引。若有，优先查看索引再使用grep。
+
 🔗 推荐后续调用：
 - read_file：根据搜索结果的行号读取完整段落
 
@@ -227,7 +313,7 @@ TOOLS = [
                 },
                 "material": {
                     "type": "string",
-                    "description": "资料名称，不填则搜索该大类下所有文件",
+                    "description": "资料文件名（含 .md 后缀），不填则搜索该大类下所有文件",
                 },
                 "pattern": {
                     "type": "string",
@@ -312,6 +398,8 @@ HANDLERS = {
     "read_overview": read_overview_handler,
     "read_progress": read_progress_handler,
     "update_progress": update_progress_handler,
+    "create_progress": create_progress_handler,
+    "delete_progress": delete_progress_handler,
     "read_index": read_index_handler,
     "read_file": read_file_handler,
     "grep": grep_handler,

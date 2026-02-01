@@ -1,6 +1,8 @@
 """Progress tracking service."""
 
+import asyncio
 import json
+from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
@@ -11,6 +13,9 @@ import aiofiles.os
 from ..config import settings
 from ..models.progress import ProgressEntry, ProgressFile, ProgressStatus
 from .review_service import ReviewService
+
+# 全局锁字典，按 category 隔离，确保同一 category 的写操作串行化
+_category_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 
 class ProgressService:
@@ -79,6 +84,9 @@ class ProgressService:
     ) -> tuple[ProgressEntry, bool, ProgressStatus | None]:
         """Create or update a progress entry.
 
+        Uses per-category locking to prevent concurrent write conflicts
+        when batch_call executes multiple updates in parallel.
+
         Args:
             category: Category name
             progress_id: Progress ID (dot-separated, e.g., "ds.graph.mst.kruskal")
@@ -92,48 +100,50 @@ class ProgressService:
         Raises:
             ValueError: If name is not provided for new entries
         """
-        progress_file = await self._load_progress_file(category)
+        # 使用 category 级别的锁，确保同一 category 的写操作串行化
+        async with _category_locks[category]:
+            progress_file = await self._load_progress_file(category)
 
-        is_new = progress_id not in progress_file.entries
-        now = datetime.now()
-        old_status: ProgressStatus | None = None
+            is_new = progress_id not in progress_file.entries
+            now = datetime.now()
+            old_status: ProgressStatus | None = None
 
-        if is_new:
-            if not name:
-                raise ValueError("name is required for new progress entry")
-            entry = ProgressEntry(
-                name=name,
-                status=status,
-                comment=comment,
-                updated_at=now,
-                mastered_at=now if status == "done" else None,
-                review_count=0,
-                next_review_at=(
-                    self.review_service.calculate_next_review(now, 0)
-                    if status == "done"
-                    else None
-                ),
-            )
-        else:
-            existing = progress_file.entries[progress_id]
-            old_status = existing.status
+            if is_new:
+                if not name:
+                    raise ValueError("name is required for new progress entry")
+                entry = ProgressEntry(
+                    name=name,
+                    status=status,
+                    comment=comment,
+                    updated_at=now,
+                    mastered_at=now if status == "done" else None,
+                    review_count=0,
+                    next_review_at=(
+                        self.review_service.calculate_next_review(now, 0)
+                        if status == "done"
+                        else None
+                    ),
+                )
+            else:
+                existing = progress_file.entries[progress_id]
+                old_status = existing.status
 
-            entry = ProgressEntry(
-                name=name or existing.name,
-                status=status,
-                comment=comment,
-                updated_at=now,
-                mastered_at=self._update_mastered_at(existing, old_status, status, now),
-                review_count=self._update_review_count(existing, old_status, status),
-                next_review_at=self._update_next_review(existing, old_status, status, now),
-            )
+                entry = ProgressEntry(
+                    name=name or existing.name,
+                    status=status,
+                    comment=comment,
+                    updated_at=now,
+                    mastered_at=self._update_mastered_at(existing, old_status, status, now),
+                    review_count=self._update_review_count(existing, old_status, status),
+                    next_review_at=self._update_next_review(existing, old_status, status, now),
+                )
 
-        progress_file.entries[progress_id] = entry
-        progress_file.last_updated = now
+            progress_file.entries[progress_id] = entry
+            progress_file.last_updated = now
 
-        await self._save_progress_file(category, progress_file)
+            await self._save_progress_file(category, progress_file)
 
-        return entry, is_new, old_status
+            return entry, is_new, old_status
 
     def _update_mastered_at(
         self,
@@ -287,6 +297,33 @@ class ProgressService:
             data = json.loads(await f.read())
 
         return ProgressFile.model_validate(data)
+
+    async def delete_progress(
+        self, category: str, progress_id: str
+    ) -> ProgressEntry | None:
+        """Delete a progress entry.
+
+        Uses per-category locking to prevent concurrent write conflicts.
+
+        Args:
+            category: Category name
+            progress_id: Progress ID to delete
+
+        Returns:
+            The deleted entry, or None if not found
+        """
+        async with _category_locks[category]:
+            progress_file = await self._load_progress_file(category)
+
+            if progress_id not in progress_file.entries:
+                return None
+
+            deleted_entry = progress_file.entries.pop(progress_id)
+            progress_file.last_updated = datetime.now()
+
+            await self._save_progress_file(category, progress_file)
+
+            return deleted_entry
 
     async def _save_progress_file(self, category: str, progress: ProgressFile) -> None:
         """Save progress file for a category.
