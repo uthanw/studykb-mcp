@@ -46,16 +46,23 @@ init = [
     "pyyaml>=6.0",
     "tiktoken>=0.7",
 ]
+admin = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "python-multipart>=0.0.9",
+    "websockets>=12.0",
+]
 all = [
-    "studykb-mcp[dev,init]",
+    "studykb-mcp[dev,init,admin]",
 ]
 
 [project.scripts]
 studykb-mcp = "studykb_mcp.__main__:main"
 studykb-init = "studykb_init.cli:main"
+studykb-admin = "studykb_admin.server:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/studykb_mcp", "src/studykb_init"]
+packages = ["src/studykb_mcp", "src/studykb_init", "src/studykb_admin"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

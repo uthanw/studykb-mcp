@@ -92,7 +92,7 @@ async def save_index(
 
     Args:
         category: Category name.
-        material: Material name (without extension).
+        material: Material name (with or without .md extension).
         index_content: Index content to save.
         overwrite: Whether to overwrite existing index.
 
@@ -103,6 +103,10 @@ async def save_index(
     category_path = kb_path / category
     if not category_path.exists():
         return False, f"分类 '{category}' 不存在"
+
+    # Handle both with and without .md extension
+    if material.endswith(".md"):
+        material = material[:-3]
 
     material_path = category_path / f"{material}.md"
     if not material_path.exists():
@@ -150,12 +154,17 @@ async def get_file_info(category: str, material: str) -> Optional[dict]:
 
     Args:
         category: Category name.
-        material: Material name (without extension).
+        material: Material name (with or without .md extension).
 
     Returns:
         Dict with name, line_count, has_index, path if exists, None otherwise.
     """
     kb_path = _get_kb_path()
+
+    # Handle both with and without .md extension
+    if material.endswith(".md"):
+        material = material[:-3]
+
     file_path = kb_path / category / f"{material}.md"
 
     if not file_path.exists():

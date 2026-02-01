@@ -1,5 +1,6 @@
 """Knowledge base service for file operations."""
 
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -80,7 +81,7 @@ class KBService:
         return sorted(materials, key=lambda m: m.name)
 
     async def _count_lines(self, file_path: Path) -> int:
-        """Count the number of lines in a file.
+        """Count the number of lines in a file using wc -l for speed.
 
         Args:
             file_path: Path to the file
@@ -88,6 +89,21 @@ class KBService:
         Returns:
             Number of lines
         """
+        try:
+            # Use wc -l for fast line counting (much faster than reading file in Python)
+            result = subprocess.run(
+                ["wc", "-l", str(file_path)],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                # wc -l output format: "  12345 /path/to/file"
+                return int(result.stdout.strip().split()[0])
+        except (subprocess.TimeoutExpired, ValueError, IndexError):
+            pass
+
+        # Fallback to Python counting if wc fails
         count = 0
         async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
             async for _ in f:

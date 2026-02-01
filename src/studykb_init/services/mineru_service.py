@@ -242,6 +242,83 @@ class MineruService:
 
         return None
 
+    async def _poll_status_with_ws(
+        self,
+        batch_id: str,
+        file_name: str,
+        on_progress: Callable[[str], None],
+    ) -> str | None:
+        """Poll for task completion with async callback support.
+
+        Args:
+            batch_id: Batch ID from upload request.
+            file_name: Name of the file being processed.
+            on_progress: Async progress callback.
+
+        Returns:
+            Download URL if successful, None if failed/timeout.
+        """
+        url = f"{self.config.api_base}/extract-results/batch/{batch_id}"
+        start_time = time.time()
+        last_state = ""
+
+        while time.time() - start_time < self.config.max_poll_time:
+            await asyncio.sleep(self.config.poll_interval)
+
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=self.headers, timeout=30)
+                result = response.json()
+
+            if result.get("code") != 0:
+                continue
+
+            extract_results = result.get("data", {}).get("extract_result", [])
+
+            for item in extract_results:
+                if item.get("file_name") != file_name:
+                    continue
+
+                state = item.get("state", "")
+
+                if state == "done":
+                    return item.get("full_zip_url", "")
+
+                elif state == "failed":
+                    err_msg = item.get("err_msg", "解析失败")
+                    raise Exception(err_msg)
+
+                elif state == "running":
+                    progress = item.get("extract_progress", {})
+                    extracted = progress.get("extracted_pages", 0)
+                    total = progress.get("total_pages", 0)
+                    if total > 0:
+                        msg = f"解析中 {extracted}/{total} 页"
+                    else:
+                        msg = "解析中..."
+                    if msg != last_state:
+                        last_state = msg
+                        await on_progress(msg)
+
+                elif state == "converting":
+                    msg = "格式转换中..."
+                    if msg != last_state:
+                        last_state = msg
+                        await on_progress(msg)
+
+                elif state == "pending":
+                    msg = "排队中..."
+                    if msg != last_state:
+                        last_state = msg
+                        await on_progress(msg)
+
+                elif state == "waiting-file":
+                    msg = "等待文件上传确认..."
+                    if msg != last_state:
+                        last_state = msg
+                        await on_progress(msg)
+
+        return None
+
     async def _download_result(
         self,
         download_url: str,

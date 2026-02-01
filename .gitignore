@@ -45,3 +45,6 @@ progress/
 
 # Config with secrets
 config/llm_config.yaml
+
+# Node.js
+node_modules/
