@@ -2,9 +2,24 @@
 
 from typing import Any
 
-from ..models.progress import ProgressStatus
+from ..models.progress import ProgressStatus, RelatedSection
 from ..services.progress_service import ProgressService
 from ..utils.formatters import format_progress_update
+
+
+def _parse_sections(sections_data: list[dict] | None) -> list[RelatedSection] | None:
+    """Parse sections data from arguments."""
+    if sections_data is None:
+        return None
+    return [
+        RelatedSection(
+            material=s["material"],
+            start_line=s["start_line"],
+            end_line=s["end_line"],
+            desc=s.get("desc", ""),
+        )
+        for s in sections_data
+    ]
 
 
 async def update_progress_handler(arguments: dict[str, Any]) -> str:
@@ -16,6 +31,7 @@ async def update_progress_handler(arguments: dict[str, Any]) -> str:
             - progress_id (str): Existing progress ID (required)
             - status (str): Status (required)
             - comment (str, optional): Comment/notes
+            - related_sections (list, optional): Related material sections
 
     Returns:
         Formatted update confirmation or error
@@ -24,11 +40,12 @@ async def update_progress_handler(arguments: dict[str, Any]) -> str:
     progress_id: str = arguments["progress_id"]
     status: ProgressStatus = arguments["status"]
     comment: str = arguments.get("comment", "")
+    related_sections = _parse_sections(arguments.get("related_sections"))
 
     service = ProgressService()
 
-    # Check if entry exists
-    progress_file = await service.get_progress(category)
+    # Check if entry exists - use get_full_progress to avoid filtering
+    progress_file = await service.get_full_progress(category)
     if progress_id not in progress_file.entries:
         return f"❌ 进度节点不存在: {progress_id}\n\n请先使用 read_progress 确认现有节点，或使用 create_progress 创建新节点。"
 
@@ -39,6 +56,7 @@ async def update_progress_handler(arguments: dict[str, Any]) -> str:
             status=status,
             name=None,  # Don't update name
             comment=comment,
+            related_sections=related_sections,
         )
     except ValueError as e:
         return f"❌ Error: {e}"
@@ -56,6 +74,7 @@ async def create_progress_handler(arguments: dict[str, Any]) -> str:
             - name (str): Knowledge point name (required)
             - status (str, optional): Initial status (default: pending)
             - comment (str, optional): Comment/notes
+            - related_sections (list, optional): Related material sections
 
     Returns:
         Formatted creation confirmation or error
@@ -65,11 +84,12 @@ async def create_progress_handler(arguments: dict[str, Any]) -> str:
     name: str = arguments["name"]
     status: ProgressStatus = arguments.get("status", "pending")
     comment: str = arguments.get("comment", "")
+    related_sections = _parse_sections(arguments.get("related_sections"))
 
     service = ProgressService()
 
-    # Check if entry already exists
-    progress_file = await service.get_progress(category)
+    # Check if entry already exists - use get_full_progress to avoid filtering
+    progress_file = await service.get_full_progress(category)
     if progress_id in progress_file.entries:
         existing = progress_file.entries[progress_id]
         return f"❌ 进度节点已存在: {progress_id} ({existing.name})\n\n如需更新状态，请使用 update_progress 工具。"
@@ -81,6 +101,7 @@ async def create_progress_handler(arguments: dict[str, Any]) -> str:
             status=status,
             name=name,
             comment=comment,
+            related_sections=related_sections,
         )
     except ValueError as e:
         return f"❌ Error: {e}"

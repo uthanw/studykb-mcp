@@ -20,6 +20,16 @@ class LLMConfig(BaseModel):
     max_tokens: int = 4096
 
 
+class MineruConfig(BaseModel):
+    """MinerU API configuration for PDF conversion."""
+
+    api_base: str = "https://mineru.net/api/v4"
+    api_token: str = ""
+    model_version: str = "vlm"  # vlm or ocr
+    poll_interval: int = 2  # seconds between status checks
+    max_poll_time: int = 600  # max wait time in seconds
+
+
 class InitSettings(BaseSettings):
     """Initialization tool settings."""
 
@@ -40,6 +50,9 @@ class InitSettings(BaseSettings):
 
     # LLM configuration (loaded from file or defaults)
     llm: LLMConfig = Field(default_factory=LLMConfig)
+
+    # MinerU configuration (loaded from file or defaults)
+    mineru: MineruConfig = Field(default_factory=MineruConfig)
 
 
 def _expand_env_vars(value: str) -> str:
@@ -77,6 +90,8 @@ def load_config(config_path: Optional[Path] = None) -> InitSettings:
         config_data = _process_config_dict(config_data)
         if "llm" in config_data:
             settings.llm = LLMConfig(**config_data["llm"])
+        if "mineru" in config_data:
+            settings.mineru = MineruConfig(**config_data["mineru"])
 
     return settings
 
@@ -93,7 +108,14 @@ def save_config(settings: InitSettings, config_path: Optional[Path] = None) -> N
             "model": settings.llm.model,
             "temperature": settings.llm.temperature,
             "max_tokens": settings.llm.max_tokens,
-        }
+        },
+        "mineru": {
+            "api_base": settings.mineru.api_base,
+            "api_token": settings.mineru.api_token,
+            "model_version": settings.mineru.model_version,
+            "poll_interval": settings.mineru.poll_interval,
+            "max_poll_time": settings.mineru.max_poll_time,
+        },
     }
 
     with open(path, "w", encoding="utf-8") as f:
@@ -103,3 +125,8 @@ def save_config(settings: InitSettings, config_path: Optional[Path] = None) -> N
 def ensure_api_configured(settings: InitSettings) -> bool:
     """Check if LLM API is properly configured."""
     return bool(settings.llm.api_key and settings.llm.api_key.strip())
+
+
+def ensure_mineru_configured(settings: InitSettings) -> bool:
+    """Check if MinerU API is properly configured."""
+    return bool(settings.mineru.api_token and settings.mineru.api_token.strip())

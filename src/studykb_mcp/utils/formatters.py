@@ -1,80 +1,104 @@
-"""TUI-style output formatters for MCP tool responses."""
+"""TOON-style output formatters for MCP tool responses.
+
+TOON format optimizes token usage by:
+- Declaring field names once in header: `items[N]{field1,field2}:`
+- Data rows contain only values, comma-separated
+- Explicit [N] length for validation
+"""
 
 from datetime import datetime
 
 from ..models.kb import Category
-from ..models.progress import ProgressEntry, ProgressFile, ProgressStatus
+from ..models.progress import ProgressEntry, ProgressFile, ProgressStatus, RelatedSection
 from ..services.kb_service import GrepResult
 from ..services.review_service import ReviewService
-from .datetime_utils import format_date_short, format_overdue, format_relative_time
+
+
+def _escape_value(value: str) -> str:
+    """Escape special characters in TOON values."""
+    if not value:
+        return ""
+    # Escape commas and newlines in values
+    value = value.replace("\\", "\\\\")
+    value = value.replace(",", "\\,")
+    value = value.replace("\n", "\\n")
+    return value
+
+
+def _format_date(dt: datetime | None, with_time: bool = True) -> str:
+    """Format datetime compactly."""
+    if not dt:
+        return "-"
+    if with_time:
+        return dt.strftime("%m-%d %H:%M")
+    return dt.strftime("%m-%d")
+
+
+def _format_sections(sections: list[RelatedSection]) -> str:
+    """Format related sections compactly.
+
+    Format: material:start-end|material:start-end
+    Example: 图论.md:150-220|图论.md:450-480
+    """
+    if not sections:
+        return "-"
+    parts = []
+    for sec in sections:
+        parts.append(f"{sec.material}:{sec.start_line}-{sec.end_line}")
+    return "|".join(parts)
 
 
 def format_overview(categories: list[Category]) -> str:
-    """Format knowledge base overview for display.
+    """Format knowledge base overview in TOON style.
 
     Args:
         categories: List of categories
 
     Returns:
-        Formatted TUI-style string
+        TOON formatted string
     """
     if not categories:
-        return "# Knowledge Base Overview\n\nNo categories found.\nCreate a directory in kb/ to get started."
-
-    lines = ["# Knowledge Base Overview", ""]
-
-    for cat in categories:
-        lines.append(f"{cat.name}/ ({cat.file_count} files)")
-        for i, mat in enumerate(cat.materials):
-            prefix = "└" if i == len(cat.materials) - 1 else "├"
-            idx_tag = " [IDX]" if mat.has_index else ""
-            lines.append(f"  {prefix} {mat.name:<20} {mat.line_count:>6} ln{idx_tag}")
-        lines.append("")
+        return "# overview\nstatus: empty\nmessage: No categories found. Create a directory in kb/ to get started."
 
     total_files = sum(c.file_count for c in categories)
-    lines.append("---")
-    lines.append(f"{len(categories)} categories, {total_files} files")
-    lines.append("[IDX] = index available")
+    lines = [
+        "# overview",
+        f"total: {len(categories)} categories, {total_files} files",
+        "",
+    ]
 
-    return "\n".join(lines)
+    # Categories with materials
+    for cat in categories:
+        lines.append(f"## {cat.name}")
+        if cat.materials:
+            lines.append(f"materials[{len(cat.materials)}]{{filename,lines,has_index}}:")
+            for mat in cat.materials:
+                index_flag = "Y" if mat.has_index else "N"
+                lines.append(f"  {mat.name},{mat.line_count},{index_flag}")
+        else:
+            lines.append("  (no materials)")
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
 
 
 def format_progress(
     progress: ProgressFile,
     status_filter: list[ProgressStatus] | None = None,
+    show_time: bool = False,
 ) -> str:
-    """Format progress data for display.
+    """Format progress data in TOON style.
 
     Args:
         progress: Progress file data
-        status_filter: Applied status filter (for header display)
+        status_filter: Applied status filter
+        show_time: Whether to include time info (updated_at, due date, etc.)
 
     Returns:
-        Formatted TUI-style string
+        TOON formatted string
     """
     review_service = ReviewService()
-
-    # Header
-    filter_info = ""
-    if status_filter:
-        filter_info = f" [filter: {', '.join(status_filter)}]"
-    lines = [f"# Progress: {progress.category}{filter_info}", ""]
-
-    # Stats
     stats = progress.get_stats()
-    lines.append(
-        f"done: {stats['done']} | active: {stats['active']} | "
-        f"review: {stats['review']} | pending: {stats['pending']} | total: {stats['total']}"
-    )
-
-    # Progress bar
-    if stats["total"] > 0:
-        done_pct = (stats["done"] + stats["review"]) / stats["total"]
-        bar_len = 30
-        filled = int(bar_len * done_pct)
-        bar = "=" * filled + "." * (bar_len - filled)
-        lines.append(f"[{bar}] {int(done_pct * 100)}%")
-    lines.append("")
 
     # Group entries by status
     by_status: dict[str, list[tuple[str, ProgressEntry]]] = {
@@ -91,50 +115,83 @@ def format_progress(
     for status in by_status:
         by_status[status].sort(key=lambda x: x[1].updated_at, reverse=True)
 
-    # Format each section
-    status_info = {
-        "active": ("🔥", "active"),
-        "review": ("🔄", "review"),
-        "done": ("✅", "done"),
-        "pending": ("📋", "pending"),
-    }
+    # Build output
+    lines = [
+        f"# progress: {progress.category}",
+        f"stats: active={stats['active']},review={stats['review']},done={stats['done']},pending={stats['pending']}",
+    ]
 
-    for status, (emoji, label) in status_info.items():
-        entries = by_status[status]
-        if not entries:
-            continue
+    if status_filter:
+        lines.append(f"filter: {','.join(status_filter)}")
 
-        count = len(entries)
-        lines.append(f"## {emoji} {label} ({count})")
+    # Active entries
+    if by_status["active"]:
         lines.append("")
+        if show_time:
+            lines.append(f"active[{len(by_status['active'])}]{{id,name,updated,comment,sections}}:")
+            for entry_id, entry in by_status["active"]:
+                comment = _escape_value(entry.comment) if entry.comment else ""
+                sections = _format_sections(entry.related_sections)
+                lines.append(f"  {entry_id},{_escape_value(entry.name)},{_format_date(entry.updated_at)},{comment},{sections}")
+        else:
+            lines.append(f"active[{len(by_status['active'])}]{{id,name,comment,sections}}:")
+            for entry_id, entry in by_status["active"]:
+                comment = _escape_value(entry.comment) if entry.comment else ""
+                sections = _format_sections(entry.related_sections)
+                lines.append(f"  {entry_id},{_escape_value(entry.name)},{comment},{sections}")
 
-        for entry_id, entry in entries:
-            # Main line
-            if status == "review" and entry.next_review_at:
-                overdue = review_service.get_overdue_days(entry.next_review_at)
-                overdue_str = format_overdue(overdue)
-                lines.append(f"{entry_id} | {entry.name} | {overdue_str}")
-            elif status == "done":
-                date_str = format_date_short(entry.updated_at)
-                lines.append(f"{entry_id:<35} | {entry.name:<15} | {date_str}")
-            else:
-                lines.append(f"{entry_id} | {entry.name}")
+    # Review entries (with overdue info)
+    if by_status["review"]:
+        lines.append("")
+        if show_time:
+            lines.append(f"review[{len(by_status['review'])}]{{id,name,due,overdue,comment,sections}}:")
+            for entry_id, entry in by_status["review"]:
+                due = _format_date(entry.next_review_at, with_time=False) if entry.next_review_at else "-"
+                overdue = review_service.get_overdue_days(entry.next_review_at) if entry.next_review_at else 0
+                overdue_str = f"{overdue}d" if overdue > 0 else "-"
+                comment = _escape_value(entry.comment) if entry.comment else ""
+                sections = _format_sections(entry.related_sections)
+                lines.append(f"  {entry_id},{_escape_value(entry.name)},{due},{overdue_str},{comment},{sections}")
+        else:
+            lines.append(f"review[{len(by_status['review'])}]{{id,name,comment,sections}}:")
+            for entry_id, entry in by_status["review"]:
+                comment = _escape_value(entry.comment) if entry.comment else ""
+                sections = _format_sections(entry.related_sections)
+                lines.append(f"  {entry_id},{_escape_value(entry.name)},{comment},{sections}")
 
-            # Comment line (for active and review)
-            if status in ("active", "review") and entry.comment:
-                lines.append(f'  "{entry.comment}"')
+    # Done entries
+    if by_status["done"]:
+        lines.append("")
+        if show_time:
+            lines.append(f"done[{len(by_status['done'])}]{{id,name,mastered,next_review,comment,sections}}:")
+            for entry_id, entry in by_status["done"]:
+                mastered = _format_date(entry.mastered_at, with_time=False) if entry.mastered_at else "-"
+                next_rev = _format_date(entry.next_review_at, with_time=False) if entry.next_review_at else "-"
+                comment = _escape_value(entry.comment) if entry.comment else ""
+                sections = _format_sections(entry.related_sections)
+                lines.append(f"  {entry_id},{_escape_value(entry.name)},{mastered},{next_rev},{comment},{sections}")
+        else:
+            lines.append(f"done[{len(by_status['done'])}]{{id,name,comment,sections}}:")
+            for entry_id, entry in by_status["done"]:
+                comment = _escape_value(entry.comment) if entry.comment else ""
+                sections = _format_sections(entry.related_sections)
+                lines.append(f"  {entry_id},{_escape_value(entry.name)},{comment},{sections}")
 
-            # Additional info
-            if status == "active":
-                lines.append(f"  updated: {format_relative_time(entry.updated_at)}")
-            elif status == "review":
-                lines.append(f"  reviewed {entry.review_count}x")
-
-            if status in ("active", "review"):
-                lines.append("")
-
-    # Footer
-    lines.append("---")
+    # Pending entries
+    if by_status["pending"]:
+        lines.append("")
+        if show_time:
+            lines.append(f"pending[{len(by_status['pending'])}]{{id,name,updated,comment,sections}}:")
+            for entry_id, entry in by_status["pending"]:
+                comment = _escape_value(entry.comment) if entry.comment else ""
+                sections = _format_sections(entry.related_sections)
+                lines.append(f"  {entry_id},{_escape_value(entry.name)},{_format_date(entry.updated_at)},{comment},{sections}")
+        else:
+            lines.append(f"pending[{len(by_status['pending'])}]{{id,name,comment,sections}}:")
+            for entry_id, entry in by_status["pending"]:
+                comment = _escape_value(entry.comment) if entry.comment else ""
+                sections = _format_sections(entry.related_sections)
+                lines.append(f"  {entry_id},{_escape_value(entry.name)},{comment},{sections}")
 
     return "\n".join(lines)
 
@@ -146,7 +203,7 @@ def format_progress_update(
     is_new: bool,
     old_status: ProgressStatus | None = None,
 ) -> str:
-    """Format progress update confirmation.
+    """Format progress update confirmation in TOON style.
 
     Args:
         category: Category name
@@ -156,36 +213,78 @@ def format_progress_update(
         old_status: Previous status (if updating)
 
     Returns:
-        Formatted confirmation string
+        TOON formatted string
     """
-    review_service = ReviewService()
+    action = "created" if is_new else "updated"
+    lines = [
+        f"# {action}: {category}/{progress_id}",
+        f"name: {entry.name}",
+        f"status: {entry.status}",
+    ]
 
-    if is_new:
-        lines = [
-            "✨ Progress created",
-            "",
-            f"{category} / {progress_id}",
-            f"{entry.name} [NEW]",
-            "",
-            f"  status: {entry.status}",
-        ]
-    else:
-        lines = [
-            "✅ Progress updated",
-            "",
-            f"{category} / {progress_id}",
-            entry.name,
-            "",
-            f"  {old_status} → {entry.status}",
-        ]
+    if not is_new and old_status and old_status != entry.status:
+        lines.append(f"old_status: {old_status}")
 
     if entry.comment:
-        lines.append(f'  "{entry.comment}"')
+        lines.append(f"comment: {_escape_value(entry.comment)}")
 
-    if entry.status == "done" and entry.next_review_at:
+    lines.append(f"review_count: {entry.review_count}")
+
+    if entry.next_review_at:
         days = (entry.next_review_at - datetime.now()).days
+        lines.append(f"next_review: {_format_date(entry.next_review_at, with_time=False)} ({days}d)")
+
+    # Show related sections count in update confirmation
+    if entry.related_sections:
+        lines.append(f"related_sections: {len(entry.related_sections)}")
+
+    return "\n".join(lines)
+
+
+def format_progress_detail(
+    category: str,
+    progress_id: str,
+    entry: ProgressEntry,
+) -> str:
+    """Format single progress entry detail in TOON style.
+
+    Args:
+        category: Category name
+        progress_id: Progress ID
+        entry: Progress entry
+
+    Returns:
+        TOON formatted string with full detail including related_sections
+    """
+    lines = [
+        f"# detail: {category}/{progress_id}",
+        f"name: {entry.name}",
+        f"status: {entry.status}",
+        f"updated: {_format_date(entry.updated_at)}",
+    ]
+
+    if entry.comment:
+        lines.append(f"comment: {_escape_value(entry.comment)}")
+
+    if entry.mastered_at:
+        lines.append(f"mastered: {_format_date(entry.mastered_at, with_time=False)}")
+
+    lines.append(f"review_count: {entry.review_count}")
+
+    if entry.next_review_at:
+        days = (entry.next_review_at - datetime.now()).days
+        lines.append(f"next_review: {_format_date(entry.next_review_at, with_time=False)} ({days}d)")
+
+    # Related sections
+    if entry.related_sections:
         lines.append("")
-        lines.append(f"next review: {format_date_short(entry.next_review_at)} ({days}d)")
+        lines.append(f"related_sections[{len(entry.related_sections)}]{{material,range,desc}}:")
+        for sec in entry.related_sections:
+            desc = _escape_value(sec.desc) if sec.desc else ""
+            lines.append(f"  {sec.material},{sec.start_line}-{sec.end_line},{desc}")
+    else:
+        lines.append("")
+        lines.append("related_sections: (none)")
 
     return "\n".join(lines)
 
@@ -198,7 +297,7 @@ def format_read_file(
     lines: list[tuple[int, str]],
     truncated: bool,
 ) -> str:
-    """Format file content for display.
+    """Format file content in TOON style.
 
     Args:
         category: Category name
@@ -209,22 +308,23 @@ def format_read_file(
         truncated: Whether content was truncated
 
     Returns:
-        Formatted file content
+        TOON formatted string
     """
-    header = f"# {category}/{material} L{start_line}-{end_line}"
+    output_lines = [
+        f"# file: {category}/{material}",
+        f"range: {start_line}-{end_line} ({len(lines)} lines)",
+    ]
+
     if truncated:
-        header += " (truncated)"
+        output_lines.append("warning: Content truncated. Request a smaller range.")
 
-    content_lines = [header, ""]
-
+    output_lines.append("")
+    output_lines.append("```")
     for line_num, text in lines:
-        content_lines.append(f"{line_num:5} | {text}")
+        output_lines.append(f"{line_num:>5}| {text}")
+    output_lines.append("```")
 
-    if truncated:
-        content_lines.append("")
-        content_lines.append("⚠️ Content truncated. Request a smaller range.")
-
-    return "\n".join(content_lines)
+    return "\n".join(output_lines)
 
 
 def format_grep_results(
@@ -234,7 +334,7 @@ def format_grep_results(
     results: list[GrepResult],
     max_matches: int,
 ) -> str:
-    """Format grep search results.
+    """Format grep search results in TOON style.
 
     Args:
         category: Category name
@@ -244,58 +344,96 @@ def format_grep_results(
         max_matches: Maximum matches requested
 
     Returns:
-        Formatted search results
+        TOON formatted string
     """
     total_matches = sum(r.total_matches for r in results)
 
-    # Header
-    if material:
-        header = f'# grep "{pattern}" in {category}/{material}'
-    else:
-        header = f'# grep "{pattern}" in {category}/*'
+    lines = [
+        f"# grep: {category}" + (f"/{material}" if material else ""),
+        f"pattern: {pattern}",
+        f"matches: {total_matches} (max: {max_matches})",
+    ]
 
-    lines = [header]
+    for r in results:
+        if not r.matches:
+            continue
 
-    if total_matches == 0:
-        lines.append("0 matches")
         lines.append("")
-        lines.append("Try different keywords or search in other categories.")
-        return "\n".join(lines)
+        lines.append(f"## {r.material} ({r.total_matches} matches)")
 
-    lines.append(f"{total_matches} matches")
-    lines.append("")
-
-    # Results
-    for result in results:
-        if not material:
-            # Multi-file search: show file header
-            lines.append(f"-- {result.material} ({result.total_matches}) --")
+        for match in r.matches:
             lines.append("")
-
-        for match in result.matches:
-            lines.append(f"[L{match.line_num}]")
             for ctx in match.context:
-                line_num = ctx["line_num"]
-                text = ctx["text"]
-                is_match = ctx["is_match"]
-                prefix = ">" if is_match else " "
-                lines.append(f"{prefix} {line_num:5} | {text}")
-            lines.append("")
+                marker = ">" if ctx["is_match"] else " "
+                lines.append(f"{ctx['line_num']:>5}{marker}| {ctx['text']}")
+
+    if not results or total_matches == 0:
+        lines.append("")
+        lines.append("(no matches found)")
 
     return "\n".join(lines)
 
 
-def format_index_not_found(category: str, material: str) -> str:
-    """Format index not found error.
+def format_index_not_found(category: str, material: str, available_files: list[str]) -> str:
+    """Format index not found error in TOON style.
 
     Args:
         category: Category name
         material: Material name
+        available_files: List of available material files in the category
 
     Returns:
-        Formatted error message
+        TOON formatted string
     """
-    return f"""⚠️ Index not found: {category}/{material}
+    lines = [
+        "# error: index_not_found",
+        f"file: {category}/{material}",
+        f"message: 该资料没有索引文件",
+        f"suggestion: 使用 grep 搜索或 read_file 读取指定行范围",
+    ]
 
-No index file available for this material.
-Use `grep` to search or `read_file` with estimated ranges."""
+    if available_files:
+        # Show files with index
+        with_index = [f for f in available_files if f.endswith(" [IDX]")]
+        without_index = [f for f in available_files if not f.endswith(" [IDX]")]
+
+        lines.append("")
+        lines.append(f"available_files[{len(available_files)}]:")
+        for f in with_index:
+            lines.append(f"  {f}")
+        for f in without_index:
+            lines.append(f"  {f}")
+
+    return "\n".join(lines)
+
+
+def format_file_not_found(category: str, material: str, available_files: list[str]) -> str:
+    """Format file not found error in TOON style.
+
+    Args:
+        category: Category name
+        material: Material name
+        available_files: List of available material files in the category
+
+    Returns:
+        TOON formatted string
+    """
+    lines = [
+        "# error: file_not_found",
+        f"file: {category}/{material}",
+        f"message: 文件不存在",
+    ]
+
+    if available_files:
+        # Show files with index first
+        with_index = [f for f in available_files if f.endswith(" [IDX]")]
+        without_index = [f for f in available_files if not f.endswith(" [IDX]")]
+
+        lines.append("")
+        lines.append(f"available_files[{len(available_files)}]:")
+        for f in with_index:
+            lines.append(f"  {f}")
+        for f in without_index:
+            lines.append(f"  {f}")
+
+    return "\n".join(lines)

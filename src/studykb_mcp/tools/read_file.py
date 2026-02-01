@@ -3,7 +3,7 @@
 from typing import Any
 
 from ..services.kb_service import KBService
-from ..utils.formatters import format_read_file
+from ..utils.formatters import format_read_file, format_file_not_found
 
 
 async def read_file_handler(arguments: dict[str, Any]) -> str:
@@ -33,7 +33,16 @@ async def read_file_handler(arguments: dict[str, Any]) -> str:
             start_line=start_line,
             end_line=end_line,
         )
-    except FileNotFoundError as e:
-        return f"❌ Error: {e}"
+    except FileNotFoundError:
+        # Get available files for error message
+        categories = await kb_service.get_overview()
+        available_files: list[str] = []
+        for cat in categories:
+            if cat.name == category:
+                for mat in cat.materials:
+                    suffix = " [IDX]" if mat.has_index else ""
+                    available_files.append(f"{mat.name}{suffix}")
+                break
+        return format_file_not_found(category, material, available_files)
 
     return format_read_file(category, material, start_line, end_line, lines, truncated)

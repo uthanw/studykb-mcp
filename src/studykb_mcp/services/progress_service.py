@@ -11,7 +11,7 @@ import aiofiles
 import aiofiles.os
 
 from ..config import settings
-from ..models.progress import ProgressEntry, ProgressFile, ProgressStatus
+from ..models.progress import ProgressEntry, ProgressFile, ProgressStatus, RelatedSection
 from .review_service import ReviewService
 
 # 全局锁字典，按 category 隔离，确保同一 category 的写操作串行化
@@ -81,6 +81,7 @@ class ProgressService:
         status: ProgressStatus,
         name: str | None = None,
         comment: str = "",
+        related_sections: list[RelatedSection] | None = None,
     ) -> tuple[ProgressEntry, bool, ProgressStatus | None]:
         """Create or update a progress entry.
 
@@ -93,6 +94,7 @@ class ProgressService:
             status: New status
             name: Knowledge point name (required for new entries)
             comment: Comment/notes
+            related_sections: List of related material sections
 
         Returns:
             Tuple of (entry, is_new, old_status)
@@ -123,6 +125,7 @@ class ProgressService:
                         if status == "done"
                         else None
                     ),
+                    related_sections=related_sections or [],
                 )
             else:
                 existing = progress_file.entries[progress_id]
@@ -136,6 +139,7 @@ class ProgressService:
                     mastered_at=self._update_mastered_at(existing, old_status, status, now),
                     review_count=self._update_review_count(existing, old_status, status),
                     next_review_at=self._update_next_review(existing, old_status, status, now),
+                    related_sections=related_sections if related_sections is not None else existing.related_sections,
                 )
 
             progress_file.entries[progress_id] = entry
@@ -355,3 +359,20 @@ class ProgressService:
             True if progress file exists
         """
         return await aiofiles.os.path.exists(self.progress_path / f"{category}.json")
+
+    async def list_categories(self) -> list[str]:
+        """List all categories that have progress files.
+
+        Returns:
+            List of category names (sorted)
+        """
+        categories = []
+
+        if not await aiofiles.os.path.exists(self.progress_path):
+            return categories
+
+        for entry in await aiofiles.os.listdir(self.progress_path):
+            if entry.endswith(".json"):
+                categories.append(entry[:-5])  # Remove .json extension
+
+        return sorted(categories)

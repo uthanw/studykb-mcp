@@ -31,6 +31,7 @@ TOOLS = [
 - 对话开始时，了解当前知识库有哪些内容
 - 用户提到一个你不确定是否存在的学科/资料时
 - 需要向用户展示可学习的范围时
+- 需要获取所有存在的文件名
 
 ⚠️ 注意：
 - 这是轻量级调用，返回概览信息，不包含具体内容
@@ -45,20 +46,23 @@ TOOLS = [
         name="read_progress",
         description="""获取某个大类的学习进度追踪数据。
 
-💡 最常用方式：只传 category，获取该分类的完整进度概览。
-   筛选器（status_filter/since）仅在特定需求下使用。
+💡 两种使用模式：
+1. 列表模式（只传 category）：获取该分类的完整进度概览
+2. 详情模式（传 category + progress_id）：获取单个节点详情，包含关联资料片段
 
 📌 调用时机：
 - 用户说"继续学习""今天学什么"时，了解当前进度
 - 需要确定下一个学习内容时
 - 用户问"我学到哪了""还有多少没学"时
 - 检查是否有需要复习的内容时
+- 需要查看某个知识点的关联资料位置时（传 progress_id）
 
 🔗 推荐前置调用：
 - read_overview：确认大类名称存在
 
 🔗 推荐后续调用：
 - read_index / grep：根据进度定位具体内容
+- read_file：根据 related_sections 读取关联资料片段
 - update_progress：开始新知识点时标记 active""",
         inputSchema={
             "type": "object",
@@ -67,19 +71,28 @@ TOOLS = [
                     "type": "string",
                     "description": "大类名称，如 '数据结构'、'计算机组成原理'",
                 },
+                "progress_id": {
+                    "type": "string",
+                    "description": "【可选·详情模式】指定进度节点 ID，返回该节点详情（含关联资料片段）",
+                },
                 "status_filter": {
                     "type": "array",
                     "items": {
                         "type": "string",
                         "enum": ["done", "active", "review", "pending"],
                     },
-                    "description": "【可选·特定需求】筛选状态。不传则返回所有状态",
+                    "description": "【可选·列表模式】筛选状态。不传则返回所有状态",
                 },
                 "since": {
                     "type": "string",
                     "enum": ["7d", "30d", "90d", "all"],
                     "default": "all",
-                    "description": "【可选·特定需求】时间范围筛选，基于 updated_at",
+                    "description": "【可选·列表模式】时间范围筛选，基于 updated_at",
+                },
+                "show_time": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "【可选·列表模式】是否显示时间信息（updated_at, due date 等），默认不显示以节省 token",
                 },
             },
             "required": ["category"],
@@ -92,17 +105,19 @@ TOOLS = [
 ⚠️ 重要：此工具仅用于更新【已存在】的进度节点，不会创建新节点。
 
 📌 调用时机：
-- 开始学习某个知识点时 → status="active"
-- 用户表示掌握了某个知识点时 → status="done"
+- 开始学习某个知识点时（一旦决定开始学，在讲解前就立即更新） → status="active"
+- 用户明确掌握了某个知识点时 → status="done"
 - 用户说"这个要复习"或完成复习时 → status="review" / "done"
 - 用户更新对某个知识点的理解/笔记时 → 更新 comment
+- 需要更新知识点的关联资料片段时 → 更新 related_sections
 
 🔗 推荐前置调用：
 - read_progress：确认节点存在及当前状态
 
 ⚠️ 注意：
 - 如果 progress_id 不存在会报错
-- status 变为 done 时会自动设置 next_review 时间""",
+- status 变为 done 时会自动设置 next_review 时间
+- related_sections 不传时保留原有值，传空数组则清空""",
         inputSchema={
             "type": "object",
             "properties": {
@@ -122,6 +137,20 @@ TOOLS = [
                 "comment": {
                     "type": "string",
                     "description": "一句话描述当前理解/进度/笔记",
+                },
+                "related_sections": {
+                    "type": "array",
+                    "description": "关联的资料片段列表（不传则保留原值）",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "material": {"type": "string", "description": "资料文件名（含 .md 后缀）"},
+                            "start_line": {"type": "integer", "description": "起始行号"},
+                            "end_line": {"type": "integer", "description": "结束行号"},
+                            "desc": {"type": "string", "description": "片段描述，如'教材正文'、'习题'等"},
+                        },
+                        "required": ["material", "start_line", "end_line"],
+                    },
                 },
             },
             "required": ["category", "progress_id", "status"],
@@ -176,6 +205,20 @@ TOOLS = [
                     "type": "string",
                     "description": "备注（可选）",
                 },
+                "related_sections": {
+                    "type": "array",
+                    "description": "关联的资料片段列表",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "material": {"type": "string", "description": "资料文件名（含 .md 后缀）"},
+                            "start_line": {"type": "integer", "description": "起始行号"},
+                            "end_line": {"type": "integer", "description": "结束行号"},
+                            "desc": {"type": "string", "description": "片段描述，如'教材正文'、'习题'等"},
+                        },
+                        "required": ["material", "start_line", "end_line"],
+                    },
+                },
             },
             "required": ["category", "progress_id", "name"],
         },
@@ -227,7 +270,6 @@ TOOLS = [
 - read_file：根据索引中的行号读取具体内容
 
 ⚠️ 注意：
-- 只有标记 [IDX] 的资料才有索引文件
 - 没有索引文件的探索请改用 grep""",
         inputSchema={
             "type": "object",
@@ -250,8 +292,8 @@ TOOLS = [
 
 📌 调用时机：
 - 通过 read_index 或 grep 定位到行号后，读取原文
-- 需要给用户展示/讲解教材具体内容时
-- 用户说"给我看看原文""书上怎么说的"时
+- 任何时机，当用户准备正式开始学习特定章节前，必须先读取资料文件并参考资料上的可靠教学顺序进行讲解。
+- 当时机需要寻求例题时，优先寻找知识库中的现存例题。若无才考虑现编或使用其他工具获取。
 
 🔗 推荐前置调用：
 - read_index：获取准确的行号范围
@@ -286,48 +328,43 @@ TOOLS = [
     ),
     Tool(
         name="grep",
-        description="""在资料中搜索关键词，返回匹配行及上下文。
+        description="""在资料中搜索关键词，返回匹配行及上下文。大小写不敏感。
 
 📌 调用时机：
-- 资料没有索引文件时，用搜索定位内容
-- 索引不够详细，需要精确查找某个术语时
-- 用户问"xxx在哪里提到过"时
-- 需要查找某个概念的所有出现位置时
-
-🔗 推荐前置调用：
-- read_index：应先确认资料是否存在索引。若有，优先查看索引再使用grep。
+- 用户问"xxx在哪里""讲讲xxx"时，定位内容位置
+- 资料没有索引文件，需要搜索定位时
+- 查找某个概念/术语的所有出现位置
 
 🔗 推荐后续调用：
 - read_file：根据搜索结果的行号读取完整段落
 
 ⚠️ 注意：
-- 不指定 material 时搜索整个大类，可能较慢
-- 匹配结果有上限，超出会截断
-- 支持简单文本匹配，不支持正则""",
+- 不指定 material 时搜索整个大类（所有 .md 文件）
+- 返回匹配行 + 上下文（默认前后各 2 行）""",
         inputSchema={
             "type": "object",
             "properties": {
                 "category": {
                     "type": "string",
-                    "description": "大类名称",
-                },
-                "material": {
-                    "type": "string",
-                    "description": "资料文件名（含 .md 后缀），不填则搜索该大类下所有文件",
+                    "description": "大类名称，如 '数据结构'",
                 },
                 "pattern": {
                     "type": "string",
-                    "description": "搜索关键词",
+                    "description": "搜索关键词，如 'Dijkstra'、'最短路径'",
+                },
+                "material": {
+                    "type": "string",
+                    "description": "【可选】指定搜索的文件（含 .md），不填则搜索该大类全部文件",
                 },
                 "context_lines": {
                     "type": "integer",
                     "default": 2,
-                    "description": "匹配行的上下文行数（上下各 N 行）",
+                    "description": "【可选】上下文行数，默认 2（即显示匹配行前后各 2 行）",
                 },
                 "max_matches": {
                     "type": "integer",
                     "default": 20,
-                    "description": "最大返回匹配数，设为 -1 返回全部",
+                    "description": "【可选】最大匹配数，默认 20，设为 -1 返回全部",
                 },
             },
             "required": ["category", "pattern"],

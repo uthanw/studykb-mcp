@@ -9,7 +9,13 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from studykb_init.config import InitSettings, ensure_api_configured, load_config, save_config
+from studykb_init.config import (
+    InitSettings,
+    ensure_api_configured,
+    ensure_mineru_configured,
+    load_config,
+    save_config,
+)
 from studykb_init.agents.index_agent import IndexAgent
 from studykb_init.agents.progress_agent import ProgressAgent
 from studykb_init.operations.category import (
@@ -25,6 +31,7 @@ from studykb_init.operations.import_file import (
     save_index,
 )
 from studykb_init.services.progress_service import ProgressService
+from studykb_init.services.mineru_service import MineruService, SUPPORTED_FORMATS
 
 console = Console()
 
@@ -50,15 +57,16 @@ class InitCLI:
         while True:
             console.print("\n[bold]请选择操作:[/bold]")
             console.print("  1. 创建新分类")
-            console.print("  2. 导入资料文件")
-            console.print("  3. 为资料生成索引 [dim](Agent)[/dim]")
-            console.print("  4. 初始化学习进度 [dim](Agent)[/dim]")
-            console.print("  5. 完整初始化流程 [dim](1-4一键完成)[/dim]")
-            console.print("  6. 配置 LLM API")
+            console.print("  2. 导入资料文件 [dim](MD)[/dim]")
+            console.print("  3. 导入并转换文档 [dim](PDF/Word/PPT → MD)[/dim]")
+            console.print("  4. 为资料生成索引 [dim](Agent)[/dim]")
+            console.print("  5. 初始化学习进度 [dim](Agent)[/dim]")
+            console.print("  6. 完整初始化流程 [dim](1-5一键完成)[/dim]")
+            console.print("  7. 配置 API")
             console.print("  0. 退出")
 
             choice = Prompt.ask(
-                "\n请输入选项", choices=["0", "1", "2", "3", "4", "5", "6"], default="0"
+                "\n请输入选项", choices=["0", "1", "2", "3", "4", "5", "6", "7"], default="0"
             )
 
             try:
@@ -70,12 +78,14 @@ class InitCLI:
                 elif choice == "2":
                     await self.handle_import_file()
                 elif choice == "3":
-                    await self.handle_create_index()
+                    await self.handle_import_document()
                 elif choice == "4":
-                    await self.handle_init_progress()
+                    await self.handle_create_index()
                 elif choice == "5":
-                    await self.handle_full_init()
+                    await self.handle_init_progress()
                 elif choice == "6":
+                    await self.handle_full_init()
+                elif choice == "7":
                     await self.handle_configure_api()
             except KeyboardInterrupt:
                 console.print("\n[yellow]操作已取消[/yellow]")
@@ -321,12 +331,28 @@ class InitCLI:
             created_count = 0
             for entry in entries:
                 try:
+                    # Parse related_sections if present
+                    sections = entry.get("related_sections")
+                    sections_data = None
+                    if sections:
+                        from studykb_init.services.progress_service import RelatedSection
+                        sections_data = [
+                            RelatedSection(
+                                material=s["material"],
+                                start_line=s["start_line"],
+                                end_line=s["end_line"],
+                                desc=s.get("desc", ""),
+                            )
+                            for s in sections
+                        ]
+
                     await self.progress_service.update_progress(
                         category=category,
                         progress_id=entry["progress_id"],
                         status="pending",
                         name=entry["name"],
                         comment="",
+                        related_sections=sections_data,
                     )
                     created_count += 1
                 except Exception as e:
@@ -440,7 +466,21 @@ class InitCLI:
 
     async def handle_configure_api(self) -> None:
         """Handle API configuration."""
-        console.print("\n[bold]== 配置 LLM API ==[/bold]")
+        console.print("\n[bold]== 配置 API ==[/bold]")
+        console.print("  1. 配置 LLM API")
+        console.print("  2. 配置 MinerU API (PDF 转换)")
+        console.print("  0. 返回")
+
+        choice = Prompt.ask("请选择", choices=["0", "1", "2"], default="0")
+
+        if choice == "1":
+            await self._configure_llm_api()
+        elif choice == "2":
+            await self._configure_mineru_api()
+
+    async def _configure_llm_api(self) -> None:
+        """Configure LLM API settings."""
+        console.print("\n[bold]-- LLM API 配置 --[/bold]")
 
         current = self.settings.llm
         console.print(f"\n当前配置:")
@@ -465,7 +505,117 @@ class InitCLI:
         self.settings.llm.max_tokens = max_tokens
 
         save_config(self.settings)
-        console.print(f"[green]✓ 配置已保存到 {self.settings.config_path}[/green]")
+        console.print(f"[green]✓ 配置已保存[/green]")
+
+    async def _configure_mineru_api(self) -> None:
+        """Configure MinerU API settings."""
+        console.print("\n[bold]-- MinerU API 配置 --[/bold]")
+
+        current = self.settings.mineru
+        console.print(f"\n当前配置:")
+        console.print(f"  API Base: {current.api_base}")
+        console.print(f"  API Token: {'*' * 8 if current.api_token else '(未设置)'}")
+        console.print(f"  Model: {current.model_version}")
+
+        console.print("\n请输入新配置 (直接回车保持当前值):")
+        console.print("[dim]提示: MinerU Token 可从 https://mineru.net 获取[/dim]")
+
+        api_base = Prompt.ask("API Base", default=current.api_base)
+        api_token = Prompt.ask("API Token", default=current.api_token)
+        model_version = Prompt.ask(
+            "Model Version (vlm/ocr)",
+            choices=["vlm", "ocr"],
+            default=current.model_version
+        )
+
+        self.settings.mineru.api_base = api_base
+        self.settings.mineru.api_token = api_token
+        self.settings.mineru.model_version = model_version
+
+        save_config(self.settings)
+        console.print(f"[green]✓ 配置已保存[/green]")
+
+    async def handle_import_document(self) -> Optional[tuple[str, str]]:
+        """Handle document import with MinerU conversion.
+
+        Returns:
+            Tuple of (category, material_name) if successful, None otherwise.
+        """
+        console.print("\n[bold]== 导入并转换文档 ==[/bold]")
+        supported = ", ".join(sorted(SUPPORTED_FORMATS))
+        console.print(f"[dim]支持格式: {supported}[/dim]")
+
+        # Check MinerU configuration
+        if not ensure_mineru_configured(self.settings):
+            console.print("[yellow]请先配置 MinerU API (选项 7 → 2)[/yellow]")
+            return None
+
+        # Select category
+        category = await self._select_category()
+        if not category:
+            return None
+
+        # Get source file path
+        source_path_str = Prompt.ask("请输入文档路径 (PDF/Word/PPT/图片)")
+        if not source_path_str:
+            console.print("[yellow]已取消[/yellow]")
+            return None
+
+        source_path = Path(source_path_str).expanduser().resolve()
+
+        if not source_path.exists():
+            console.print(f"[red]文件不存在: {source_path}[/red]")
+            return None
+
+        if not MineruService.is_supported(source_path):
+            console.print(f"[red]不支持的格式: {source_path.suffix}[/red]")
+            console.print(f"[dim]支持: {supported}[/dim]")
+            return None
+
+        # Check if target already exists
+        target_name = source_path.stem
+        existing_info = await get_file_info(category, target_name)
+
+        overwrite = False
+        if existing_info:
+            overwrite = Confirm.ask(
+                f"文件 '{target_name}.md' 已存在 ({existing_info['line_count']} 行)，是否覆盖?"
+            )
+            if not overwrite:
+                console.print("[yellow]已取消[/yellow]")
+                return None
+
+        # Convert using MinerU
+        console.print(f"\n[cyan]开始转换: {source_path.name}[/cyan]")
+
+        mineru = MineruService(self.settings.mineru)
+
+        def on_progress(msg: str) -> None:
+            console.print(f"  [dim]{msg}[/dim]")
+
+        result = await mineru.convert_file(
+            source_path=source_path,
+            output_dir=self.settings.kb_path / category,
+            on_progress=on_progress,
+        )
+
+        if not result.success:
+            console.print(f"[red]✗ 转换失败: {result.error}[/red]")
+            return None
+
+        console.print(f"[green]✓ 转换完成: {result.output_path}[/green]")
+
+        # Get file info
+        file_info = await get_file_info(category, target_name)
+        if file_info:
+            console.print(f"  文件大小: {file_info['line_count']} 行")
+
+            # Ask about generating index for large files
+            if file_info["line_count"] > 1000:
+                if Confirm.ask("文件较大，是否立即生成索引?"):
+                    await self.handle_create_index(category, target_name)
+
+        return category, target_name
 
     async def _select_category(self) -> Optional[str]:
         """Show category selection prompt.

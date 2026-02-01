@@ -106,6 +106,32 @@ class ProgressAgent(BaseAgent):
                                         "type": "string",
                                         "description": "知识点名称，如 Kruskal算法",
                                     },
+                                    "related_sections": {
+                                        "type": "array",
+                                        "description": "关联的资料片段列表",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "material": {
+                                                    "type": "string",
+                                                    "description": "资料文件名（含 .md 后缀）",
+                                                },
+                                                "start_line": {
+                                                    "type": "integer",
+                                                    "description": "起始行号",
+                                                },
+                                                "end_line": {
+                                                    "type": "integer",
+                                                    "description": "结束行号",
+                                                },
+                                                "desc": {
+                                                    "type": "string",
+                                                    "description": "片段描述，如'教材正文'、'习题'等",
+                                                },
+                                            },
+                                            "required": ["material", "start_line", "end_line"],
+                                        },
+                                    },
                                 },
                                 "required": ["progress_id", "name"],
                             },
@@ -143,126 +169,57 @@ class ProgressAgent(BaseAgent):
         """Get the system prompt for progress initialization."""
         file_list = self._get_file_list()
 
-        return f"""你是一个学习进度规划专家，擅长分析教材内容并规划学习路径。作为linux专家，你会灵活使用shell命令高效分析文件。
+        return f"""你是学习进度规划专家。你必须使用工具完成任务，禁止直接输出文字回复。
 
-## 当前任务
-
-为分类 **"{self.category}"** 生成学习进度跟踪条目。
+## 任务
+为分类 "{self.category}" 生成学习进度条目。
 
 ## 工作目录
-
 `{self.category_path}`
 
-目录中的资料文件:
+资料文件:
 {file_list}
 
-[IDX] 表示该资料有索引文件（文件名_index.md），优先使用索引文件了解内容结构。
+[IDX] = 有索引文件（文件名_index.md）
 
-## 可用工具
-
-1. **shell** - 执行只读 shell 命令分析文件（工作目录已设置为分类文件夹）
-2. **submit_progress** - 提交最终进度条目（调用后任务完成）
+## 工具
+1. **shell** - 执行只读shell命令（ls/grep/cat/sed等）
+2. **submit_progress** - 提交进度条目（必须调用此工具结束任务）
 
 ## 工作流程
 
-### 阶段1: 文件探索
-首先了解目录中有哪些文件:
-```bash
-ls -la *.md
-```
+1. 用 shell 探索文件结构
+2. 用 shell 分析内容（优先读索引文件，或用 grep -n 提取标题）
+3. 调用 submit_progress 提交结果
 
-### 阶段2: 分析每个资料
-对于每个资料文件:
+## progress_id 格式
+点分层级: `学科缩写.章节.小节.知识点`
 
-1. **如果有索引文件** (文件名_index.md)，优先读取索引:
-```bash
-cat 资料名_index.md
-```
+缩写: ds(数据结构), os(操作系统), co(组成原理), cn(网络), math, phys, chem
 
-2. **如果没有索引**，提取标题结构:
-```bash
-grep -n "^# " 资料名.md     # 一级标题
-grep -n "^## " 资料名.md    # 二级标题
-```
-
-3. **需要详细了解时**，读取特定区域:
-```bash
-sed -n '100,200p' 资料名.md
-```
-
-### 阶段3: 规划进度条目
-基于分析结果，为每个可独立学习的知识点创建条目。
-
-### 阶段4: 提交结果
-调用 `submit_progress` 提交所有进度条目。
-
-## progress_id 命名规则
-
-使用点分层级格式: `学科缩写.大章节.小节.具体知识点`
-
-### 学科缩写
-- `ds` - 数据结构
-- `os` - 操作系统
-- `co` - 计算机组成原理
-- `cn` - 计算机网络
-- `db` - 数据库
-- `se` - 软件工程
-- `chem` - 化学
-- `math` - 数学
-- `phys` - 物理
-
-### 主题缩写
-- `linear` - 线性结构
-- `tree` - 树结构
-- `graph` - 图
-- `sort` - 排序
-- `search` - 查找
-- `dp` - 动态规划
-- `process` - 进程
-- `memory` - 内存
-- `io` - 输入输出
-- `cpu` - 处理器
-- `cache` - 缓存
-
-### 命名示例
-- `ds.linear.array.basic` - 数据结构 > 线性表 > 数组 > 基础概念
-- `ds.graph.mst.kruskal` - 数据结构 > 图 > 最小生成树 > Kruskal算法
-- `os.process.schedule.fcfs` - 操作系统 > 进程 > 调度 > FCFS算法
-
-### 命名原则
-1. 使用小写英文，单词间用下划线连接
-2. 层级一般为3-4层，保持简洁
-3. 优先使用常见的英文缩写
-4. 同一章节的知识点应有共同前缀
+示例: `ds.graph.mst.kruskal`, `os.process.schedule.fcfs`
 
 ## 输出要求
 
-1. **只为真正的知识点创建条目**，跳过:
-   - 前言、目录、绪论概述等非核心内容
-   - 习题、小结、思考题等辅助内容
-   - 纯理论介绍无实质知识点的章节
+1. 只为核心知识点创建条目，跳过前言/目录/习题小结
+2. 每章约5-15个条目
+3. 名称用中文，可含英文术语
+4. 每个条目必须有 related_sections 关联资料片段
 
-2. **适当聚合**:
-   - 太细的知识点应合并
-   - 每章约产出5-15个条目
+## related_sections 格式
 
-3. **知识点名称**:
-   - 使用中文
-   - 简洁明了，一般不超过15字
-   - 可以包含英文术语，如"Dijkstra算法"
+```json
+{{
+  "progress_id": "ds.graph.mst.kruskal",
+  "name": "Kruskal算法",
+  "related_sections": [
+    {{"material": "图论.md", "start_line": 150, "end_line": 220, "desc": "正文"}},
+    {{"material": "图论.md", "start_line": 450, "end_line": 480, "desc": "习题"}}
+  ]
+}}
+```
 
-4. **覆盖完整**:
-   - 确保所有资料文件的重要内容都有对应条目
-   - 不要遗漏核心算法、定理、概念
-
-## 效率提示
-
-1. **优先使用索引文件** - 如果存在，它包含完整的章节结构
-2. **批量提取标题** - 用 grep 快速获取结构，避免逐行读取
-3. **最小化读取** - 只在必要时读取文件内容
-4. **尽快完成** - 使用最少的工具调用次数完成分析
-
-完成分析后，调用 `submit_progress` 提交结果。"""
+⚠️ 重要：分析完成后必须调用 submit_progress 工具提交结果，不要直接输出文字。"""
 
     async def _shell(self, command: str, **kwargs: Any) -> str:
         """Execute a read-only shell command in the category directory."""

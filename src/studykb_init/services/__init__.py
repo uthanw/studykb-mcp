@@ -5,6 +5,7 @@ without depending on the MCP server modules.
 """
 
 import json
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
@@ -13,6 +14,25 @@ from studykb_init.config import load_config
 
 
 ProgressStatus = Literal["active", "done", "review", "pending"]
+
+
+@dataclass
+class RelatedSection:
+    """A related section in a material file."""
+
+    material: str  # 文件名 (含 .md 后缀)
+    start_line: int  # 起始行
+    end_line: int  # 结束行
+    desc: str = ""  # 片段描述
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "material": self.material,
+            "start_line": self.start_line,
+            "end_line": self.end_line,
+            "desc": self.desc,
+        }
 
 
 class ProgressService:
@@ -29,6 +49,7 @@ class ProgressService:
         status: ProgressStatus,
         name: str | None = None,
         comment: str = "",
+        related_sections: list[RelatedSection] | None = None,
     ) -> tuple[dict, bool]:
         """Create or update a progress entry.
 
@@ -38,6 +59,7 @@ class ProgressService:
             status: New status
             name: Knowledge point name (required for new entries)
             comment: Comment/notes
+            related_sections: List of related material sections
 
         Returns:
             Tuple of (entry, is_new)
@@ -58,6 +80,7 @@ class ProgressService:
                 "mastered_at": None,
                 "review_count": 0,
                 "next_review_at": None,
+                "related_sections": [s.to_dict() for s in related_sections] if related_sections else [],
             }
         else:
             existing = progress_file["entries"][progress_id]
@@ -69,6 +92,11 @@ class ProgressService:
                 "mastered_at": existing.get("mastered_at"),
                 "review_count": existing.get("review_count", 0),
                 "next_review_at": existing.get("next_review_at"),
+                "related_sections": (
+                    [s.to_dict() for s in related_sections]
+                    if related_sections is not None
+                    else existing.get("related_sections", [])
+                ),
             }
 
         if "entries" not in progress_file:

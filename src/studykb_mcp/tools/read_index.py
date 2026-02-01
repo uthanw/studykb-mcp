@@ -24,6 +24,15 @@ async def read_index_handler(arguments: dict[str, Any]) -> str:
     content = await kb_service.read_index(category, material)
 
     if content is None:
-        return format_index_not_found(category, material)
+        # Get available files for error message
+        categories = await kb_service.get_overview()
+        available_files: list[str] = []
+        for cat in categories:
+            if cat.name == category:
+                for mat in cat.materials:
+                    suffix = " [IDX]" if mat.has_index else ""
+                    available_files.append(f"{mat.name}{suffix}")
+                break
+        return format_index_not_found(category, material, available_files)
 
     return content
