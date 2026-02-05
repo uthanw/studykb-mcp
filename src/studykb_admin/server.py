@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import uvicorn
 
-from .api import categories, materials, progress, convert, tasks
+from .api import categories, materials, progress, convert, tasks, workspace
 
 
 # WebSocket connection manager for real-time updates
@@ -73,6 +73,7 @@ app.include_router(materials.router, prefix="/api/materials", tags=["materials"]
 app.include_router(progress.router, prefix="/api/progress", tags=["progress"])
 app.include_router(convert.router, prefix="/api/convert", tags=["convert"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(workspace.router, prefix="/api/workspace", tags=["workspace"])
 
 
 # MCP configuration endpoint

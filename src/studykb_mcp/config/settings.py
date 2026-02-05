@@ -25,10 +25,12 @@ class Settings(BaseSettings):
     # Path configuration (relative to working directory)
     kb_path: Path = Path("./kb")
     progress_path: Path = Path("./progress")
+    workspaces_path: Path = Path("./workspaces")
 
     # Limits
     max_read_lines: int = 500
     max_grep_matches: int = 100
+    max_file_size: int = 1024 * 1024  # 1MB, 防止读取/写入过大文件
 
     # Review algorithm configuration (Ebbinghaus)
     review_initial_interval: int = 7  # days

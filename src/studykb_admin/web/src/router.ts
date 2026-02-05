@@ -9,16 +9,6 @@ const router = createRouter({
       component: () => import('./views/CategoryManagerView.vue'),
     },
     {
-      path: '/progress',
-      name: 'progress',
-      component: () => import('./views/ProgressView.vue'),
-    },
-    {
-      path: '/progress/:category',
-      name: 'progress-detail',
-      component: () => import('./views/ProgressDetailView.vue'),
-    },
-    {
       path: '/settings',
       name: 'settings',
       component: () => import('./views/SettingsView.vue'),

@@ -16,6 +16,13 @@ from .tools.update_progress import (
     delete_progress_handler,
     update_progress_handler,
 )
+from .tools.workspace import (
+    delete_workspace_file_handler,
+    edit_workspace_file_handler,
+    list_workspace_handler,
+    read_workspace_file_handler,
+    write_workspace_file_handler,
+)
 
 # Create MCP Server instance
 server = Server("studykb-mcp")
@@ -428,6 +435,164 @@ TOOLS = [
             "required": ["calls"],
         },
     ),
+    # Workspace tools
+    Tool(
+        name="read_workspace_file",
+        description="""读取进度节点工作区中的文件内容。
+
+📌 调用时机：
+- 需要查看某个知识点的学习笔记时
+- 需要查看之前写的代码示例时
+- 在编辑文件前先读取当前内容
+
+🔗 推荐前置调用：
+- list_workspace：查看工作区有哪些文件
+- read_progress：确认 progress_id 存在
+
+⚠️ 注意：
+- 默认读取 note.md（主笔记文件）
+- 支持读取任意文本文件（.md, .py, .js, .txt 等）
+- 二进制文件（图片等）无法读取""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "大类名称，如 '数据结构'"},
+                "progress_id": {"type": "string", "description": "进度节点 ID，如 'ds.graph.mst.kruskal'"},
+                "file_path": {
+                    "type": "string",
+                    "default": "note.md",
+                    "description": "工作区内的文件路径，默认 'note.md'",
+                },
+                "start_line": {"type": "integer", "description": "【可选】起始行号，从 1 开始"},
+                "end_line": {"type": "integer", "description": "【可选】结束行号"},
+            },
+            "required": ["category", "progress_id"],
+        },
+    ),
+    Tool(
+        name="write_workspace_file",
+        description="""创建或覆盖进度节点工作区中的文件。
+
+📌 调用时机：
+- 为新知识点创建学习笔记
+- 保存代码示例
+- 完全重写现有文件
+
+💡 学习场景示例：
+- 学习 Kruskal 算法时，创建 note.md 记录要点
+- 写一个实现代码保存到 code/kruskal.py
+- 整理思维导图内容到 note.md
+
+🔗 推荐配合调用：
+- read_workspace_file：写入前先读取确认
+- update_progress：更新进度状态
+
+⚠️ 注意：
+- 文件不存在时自动创建（包括目录）
+- 文件已存在时会覆盖
+- 如只需局部修改，请使用 edit_workspace_file""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "大类名称"},
+                "progress_id": {"type": "string", "description": "进度节点 ID"},
+                "file_path": {
+                    "type": "string",
+                    "default": "note.md",
+                    "description": "工作区内的文件路径，默认 'note.md'",
+                },
+                "content": {"type": "string", "description": "文件内容"},
+            },
+            "required": ["category", "progress_id", "content"],
+        },
+    ),
+    Tool(
+        name="edit_workspace_file",
+        description="""通过精确字符串匹配修改工作区文件内容。
+
+📌 调用时机：
+- 在已有笔记中添加新内容
+- 修改代码中的某个函数
+- 更正笔记中的错误
+- 更新知识点的理解
+
+💡 学习场景示例：
+- 在笔记末尾追加今天的学习心得
+- 修改代码示例中的 bug
+- 更新对某个概念的理解描述
+
+🔗 推荐前置调用：
+- read_workspace_file：确认当前文件内容，获取要替换的精确文本
+
+⚠️ 重要提示：
+- old_string 必须与文件中的内容【精确匹配】
+- 包含足够的上下文以确保唯一匹配
+- 如果匹配到多处或找不到，会返回错误
+- 创建新文件请用 write_workspace_file""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "大类名称"},
+                "progress_id": {"type": "string", "description": "进度节点 ID"},
+                "file_path": {
+                    "type": "string",
+                    "default": "note.md",
+                    "description": "工作区内的文件路径，默认 'note.md'",
+                },
+                "old_string": {
+                    "type": "string",
+                    "description": "要替换的精确文本（必须与文件内容完全匹配）",
+                },
+                "new_string": {
+                    "type": "string",
+                    "description": "替换后的新文本",
+                },
+            },
+            "required": ["category", "progress_id", "old_string", "new_string"],
+        },
+    ),
+    Tool(
+        name="delete_workspace_file",
+        description="""删除工作区中的文件。
+
+📌 调用时机：
+- 删除不再需要的代码示例
+- 清理过时的笔记草稿
+- 整理工作区
+
+⚠️ 注意：
+- 删除操作不可恢复
+- 不能删除目录，只能删除文件""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "大类名称"},
+                "progress_id": {"type": "string", "description": "进度节点 ID"},
+                "file_path": {"type": "string", "description": "要删除的文件路径"},
+            },
+            "required": ["category", "progress_id", "file_path"],
+        },
+    ),
+    Tool(
+        name="list_workspace",
+        description="""列出进度节点工作区的文件结构。
+
+📌 调用时机：
+- 查看某个知识点有哪些笔记/代码
+- 了解工作区的文件组织
+- 在读取文件前先查看有什么
+
+🔗 推荐后续调用：
+- read_workspace_file：读取感兴趣的文件""",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "大类名称"},
+                "progress_id": {"type": "string", "description": "进度节点 ID"},
+            },
+            "required": ["category", "progress_id"],
+        },
+    ),
 ]
 
 # Tool handlers mapping
@@ -440,6 +605,12 @@ HANDLERS = {
     "read_index": read_index_handler,
     "read_file": read_file_handler,
     "grep": grep_handler,
+    # Workspace tools
+    "read_workspace_file": read_workspace_file_handler,
+    "write_workspace_file": write_workspace_file_handler,
+    "edit_workspace_file": edit_workspace_file_handler,
+    "delete_workspace_file": delete_workspace_file_handler,
+    "list_workspace": list_workspace_handler,
 }
 
 

@@ -5,7 +5,6 @@ const route = useRoute()
 
 const navItems = [
   { path: '/', name: '分类管理', icon: 'folder', exact: true },
-  { path: '/progress', name: '学习进度', icon: 'chart', exact: false },
   { path: '/settings', name: '设置', icon: 'settings', exact: true },
 ]
 

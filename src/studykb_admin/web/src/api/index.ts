@@ -334,3 +334,70 @@ export const api = {
     return { data: await res.json() }
   },
 }
+
+// Workspace API
+export interface WorkspaceFile {
+  path: string
+  type: 'file'
+  size: number
+}
+
+export async function listWorkspaceFiles(
+  category: string,
+  progressId: string
+): Promise<WorkspaceFile[]> {
+  const res = await fetch(`${API_BASE}/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/files`)
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.detail || 'Failed to list workspace files')
+  }
+  const data = await res.json()
+  return data.files
+}
+
+export async function readWorkspaceFile(
+  category: string,
+  progressId: string,
+  filePath: string = 'note.md'
+): Promise<{ content: string; truncated: boolean }> {
+  const params = new URLSearchParams({ file_path: filePath })
+  const res = await fetch(`${API_BASE}/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file?${params}`)
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.detail || 'Failed to read workspace file')
+  }
+  const data = await res.json()
+  return { content: data.content, truncated: data.truncated }
+}
+
+export async function writeWorkspaceFile(
+  category: string,
+  progressId: string,
+  filePath: string,
+  content: string
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_path: filePath, content }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.detail || 'Failed to write workspace file')
+  }
+}
+
+export async function deleteWorkspaceFile(
+  category: string,
+  progressId: string,
+  filePath: string
+): Promise<void> {
+  const params = new URLSearchParams({ file_path: filePath })
+  const res = await fetch(`${API_BASE}/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file?${params}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.detail || 'Failed to delete workspace file')
+  }
+}
