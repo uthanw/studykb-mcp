@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     max_grep_matches: int = 100
     max_file_size: int = 1024 * 1024  # 1MB, 防止读取/写入过大文件
 
+    # History
+    max_history_versions: int = 50  # per-file snapshot cap
+
     # Review algorithm configuration (Ebbinghaus)
     review_initial_interval: int = 7  # days
     review_multiplier: float = 1.5

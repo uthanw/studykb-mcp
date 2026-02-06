@@ -1,6 +1,6 @@
 {
   "category": "数据结构",
-  "last_updated": "2026-02-01T16:01:15.515542",
+  "last_updated": "2026-02-06T11:34:21.707582",
   "entries": {
     "ds.ch1.algorithm": {
       "name": "算法和算法评价",
@@ -9,7 +9,8 @@
       "updated_at": "2026-02-01T16:00:19.931133",
       "mastered_at": "2026-02-01T16:00:19.931133",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch2.seqlist": {
       "name": "顺序表",
@@ -18,7 +19,8 @@
       "updated_at": "2026-02-01T16:00:19.933913",
       "mastered_at": "2026-02-01T16:00:19.933913",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch1.concept": {
       "name": "数据结构基本概念",
@@ -27,7 +29,8 @@
       "updated_at": "2026-02-01T16:00:19.935753",
       "mastered_at": "2026-02-01T16:00:19.935753",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch3.stack": {
       "name": "栈",
@@ -36,7 +39,8 @@
       "updated_at": "2026-02-01T16:00:19.937131",
       "mastered_at": "2026-02-01T16:00:19.937131",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch2.linklist": {
       "name": "链表",
@@ -45,7 +49,8 @@
       "updated_at": "2026-02-01T16:00:19.938298",
       "mastered_at": "2026-02-01T16:00:19.938298",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch3.queue": {
       "name": "队列",
@@ -54,7 +59,8 @@
       "updated_at": "2026-02-01T16:00:19.939653",
       "mastered_at": "2026-02-01T16:00:19.939653",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch3.application": {
       "name": "栈和队列的应用",
@@ -63,7 +69,8 @@
       "updated_at": "2026-02-01T16:00:19.940788",
       "mastered_at": "2026-02-01T16:00:19.940788",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch3.array": {
       "name": "数组和特殊矩阵",
@@ -72,7 +79,8 @@
       "updated_at": "2026-02-01T16:00:19.941867",
       "mastered_at": "2026-02-01T16:00:19.941867",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch4.string": {
       "name": "串的定义和实现",
@@ -81,7 +89,8 @@
       "updated_at": "2026-02-01T16:00:19.942846",
       "mastered_at": "2026-02-01T16:00:19.942846",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch4.kmp": {
       "name": "KMP模式匹配",
@@ -90,7 +99,8 @@
       "updated_at": "2026-02-01T16:00:19.943815",
       "mastered_at": "2026-02-01T16:00:19.943815",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch5.traversal": {
       "name": "二叉树的遍历",
@@ -99,7 +109,8 @@
       "updated_at": "2026-02-01T16:00:34.977962",
       "mastered_at": "2026-02-01T16:00:34.977962",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch5.thread_tree": {
       "name": "线索二叉树",
@@ -108,7 +119,8 @@
       "updated_at": "2026-02-01T16:00:34.979658",
       "mastered_at": "2026-02-01T16:00:34.979658",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch5.tree_concept": {
       "name": "树的基本概念",
@@ -117,7 +129,8 @@
       "updated_at": "2026-02-01T16:00:34.980922",
       "mastered_at": "2026-02-01T16:00:34.980922",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch6.concept": {
       "name": "图的基本概念",
@@ -126,7 +139,8 @@
       "updated_at": "2026-02-01T16:00:34.982173",
       "mastered_at": "2026-02-01T16:00:34.982173",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch5.binary_tree": {
       "name": "二叉树的概念",
@@ -135,7 +149,8 @@
       "updated_at": "2026-02-01T16:00:34.984374",
       "mastered_at": "2026-02-01T16:00:34.984374",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch5.huffman": {
       "name": "哈夫曼树和编码",
@@ -144,7 +159,8 @@
       "updated_at": "2026-02-01T16:00:34.985679",
       "mastered_at": "2026-02-01T16:00:34.985679",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch5.forest": {
       "name": "树和森林",
@@ -153,7 +169,8 @@
       "updated_at": "2026-02-01T16:00:34.986853",
       "mastered_at": "2026-02-01T16:00:34.986853",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch5.union_find": {
       "name": "并查集",
@@ -162,7 +179,8 @@
       "updated_at": "2026-02-01T16:00:34.988125",
       "mastered_at": "2026-02-01T16:00:34.988125",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch6.storage": {
       "name": "图的存储结构",
@@ -171,7 +189,8 @@
       "updated_at": "2026-02-01T16:00:34.989351",
       "mastered_at": "2026-02-01T16:00:34.989351",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch6.traversal": {
       "name": "图的遍历",
@@ -180,7 +199,8 @@
       "updated_at": "2026-02-01T16:00:34.990583",
       "mastered_at": "2026-02-01T16:00:34.990583",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch6.shortest_path": {
       "name": "最短路径",
@@ -189,16 +209,25 @@
       "updated_at": "2026-02-01T16:00:50.474258",
       "mastered_at": "2026-02-01T16:00:50.474258",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch6.topo_sort": {
       "name": "拓扑排序",
-      "status": "pending",
-      "comment": "",
-      "updated_at": "2026-02-01T16:00:50.476145",
-      "mastered_at": null,
+      "status": "done",
+      "comment": "完成拓扑排序学习，掌握Kahn算法和DFS实现，了解逆拓扑排序和关键考点。笔记已整理。",
+      "updated_at": "2026-02-03T20:20:05.526074",
+      "mastered_at": "2026-02-03T20:20:05.526074",
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": "2026-02-10T00:00:00",
+      "related_sections": [
+        {
+          "material": "26王道《数据结构》.md",
+          "start_line": 14549,
+          "end_line": 14601,
+          "desc": "教材正文：拓扑排序定义与算法"
+        }
+      ]
     },
     "ds.ch6.mst": {
       "name": "最小生成树",
@@ -207,7 +236,8 @@
       "updated_at": "2026-02-01T16:00:50.477804",
       "mastered_at": "2026-02-01T16:00:50.477804",
       "review_count": 0,
-      "next_review_at": "2026-02-08T00:00:00"
+      "next_review_at": "2026-02-08T00:00:00",
+      "related_sections": []
     },
     "ds.ch7.rbt": {
       "name": "红黑树",
@@ -216,7 +246,8 @@
       "updated_at": "2026-02-01T16:00:50.479336",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch7.seq_binary": {
       "name": "顺序查找和折半查找",
@@ -225,7 +256,8 @@
       "updated_at": "2026-02-01T16:00:50.480793",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch7.btree": {
       "name": "B树和B+树",
@@ -234,7 +266,8 @@
       "updated_at": "2026-02-01T16:00:50.482158",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch7.bst_avl": {
       "name": "BST和平衡二叉树",
@@ -243,7 +276,8 @@
       "updated_at": "2026-02-01T16:00:50.483870",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch7.hash": {
       "name": "散列表",
@@ -252,7 +286,8 @@
       "updated_at": "2026-02-01T16:00:50.485472",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch8.insert_sort": {
       "name": "插入排序",
@@ -261,7 +296,8 @@
       "updated_at": "2026-02-01T16:00:50.486920",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch6.critical_path": {
       "name": "关键路径",
@@ -270,7 +306,8 @@
       "updated_at": "2026-02-01T16:00:50.488448",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch8.swap_sort": {
       "name": "交换排序",
@@ -279,7 +316,8 @@
       "updated_at": "2026-02-01T16:01:15.510362",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch8.external_sort": {
       "name": "外部排序",
@@ -288,7 +326,8 @@
       "updated_at": "2026-02-01T16:01:15.512317",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch8.select_sort": {
       "name": "选择排序",
@@ -297,7 +336,8 @@
       "updated_at": "2026-02-01T16:01:15.514086",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
     },
     "ds.ch8.merge_radix": {
       "name": "归并排序和基数排序",
@@ -306,7 +346,47 @@
       "updated_at": "2026-02-01T16:01:15.515542",
       "mastered_at": null,
       "review_count": 0,
-      "next_review_at": null
+      "next_review_at": null,
+      "related_sections": []
+    },
+    "ds.graph.topo": {
+      "name": "拓扑排序",
+      "status": "active",
+      "comment": "",
+      "updated_at": "2026-02-06T11:34:21.707582",
+      "mastered_at": null,
+      "review_count": 0,
+      "next_review_at": null,
+      "related_sections": [
+        {
+          "material": "26王道《数据结构》.md",
+          "start_line": 14549,
+          "end_line": 14580,
+          "desc": "拓扑排序的定义和原理"
+        },
+        {
+          "material": "26王道《数据结构》.md",
+          "start_line": 14575,
+          "end_line": 14595,
+          "desc": "拓扑排序的实例和步骤"
+        },
+        {
+          "material": "26王道《数据结构》.md",
+          "start_line": 14597,
+          "end_line": 14620,
+          "desc": "拓扑排序的算法实现"
+        }
+      ]
+    },
+    "ds.graph.topsort": {
+      "name": "拓扑排序",
+      "status": "done",
+      "comment": "完成了拓扑排序的学习，包括AOV网概念、Kahn算法、DFS实现和复杂度分析",
+      "updated_at": "2026-02-03T20:09:19.197459",
+      "mastered_at": "2026-02-03T20:09:19.197459",
+      "review_count": 0,
+      "next_review_at": "2026-02-10T00:00:00",
+      "related_sections": []
     }
   }
 }

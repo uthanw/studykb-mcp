@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { api } from '../api'
+import { apiFetch } from '../api/fetch'
 
 interface McpConfig {
   mcpServers: {
@@ -30,8 +30,8 @@ async function loadConfig() {
   loading.value = true
   error.value = null
   try {
-    const response = await api.get('/config/mcp')
-    config.value = response.data
+    const response = await apiFetch<McpConfig>('/config/mcp')
+    config.value = response
   } catch (e: any) {
     error.value = e.message || '加载配置失败'
   } finally {

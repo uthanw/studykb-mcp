@@ -1,4 +1,6 @@
-const API_BASE = '/api'
+import { apiFetch } from './fetch'
+
+// ─── Types ───────────────────────────────────────────────
 
 export interface Category {
   name: string
@@ -39,39 +41,45 @@ export interface ProgressStats {
   total: number
 }
 
-// Categories API
+export interface WorkspaceFile {
+  path: string
+  type: 'file'
+  size: number
+}
+
+export interface FileVersion {
+  version_id: string
+  timestamp: string
+  operation: 'create' | 'write' | 'edit' | 'delete'
+  description: string
+  size: number
+  lines: number
+}
+
+// ─── Categories API ──────────────────────────────────────
+
 export async function fetchCategories(): Promise<Category[]> {
-  const res = await fetch(`${API_BASE}/categories`)
-  const data = await res.json()
+  const data = await apiFetch<{ categories: Category[] }>('/categories')
   return data.categories
 }
 
 export async function createCategory(name: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/categories`, {
+  await apiFetch<void>('/categories', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to create category')
-  }
 }
 
 export async function deleteCategory(name: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/categories/${name}`, {
+  await apiFetch<void>(`/categories/${name}`, {
     method: 'DELETE',
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to delete category')
-  }
 }
 
-// Materials API
+// ─── Materials API ───────────────────────────────────────
+
 export async function fetchMaterials(category: string): Promise<Material[]> {
-  const res = await fetch(`${API_BASE}/materials/${category}`)
-  const data = await res.json()
+  const data = await apiFetch<{ materials: Material[] }>(`/materials/${category}`)
   return data.materials
 }
 
@@ -81,72 +89,52 @@ export async function fetchMaterialContent(
   startLine = 1,
   endLine = 500
 ): Promise<{ lines: { num: number; text: string }[]; truncated: boolean }> {
-  const res = await fetch(
-    `${API_BASE}/materials/${category}/${material}/content?start_line=${startLine}&end_line=${endLine}`
-  )
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to fetch content')
-  }
-  return await res.json()
+  const params = new URLSearchParams({
+    start_line: String(startLine),
+    end_line: String(endLine),
+  })
+  return apiFetch(`/materials/${category}/${material}/content?${params}`)
 }
 
 export async function fetchMaterialIndex(category: string, material: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/materials/${category}/${material}/index`)
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to fetch index')
-  }
-  const data = await res.json()
+  const data = await apiFetch<{ content: string }>(`/materials/${category}/${material}/index`)
   return data.content
 }
 
 export async function deleteMaterial(category: string, material: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/materials/${category}/${material}`, {
+  await apiFetch<void>(`/materials/${category}/${material}`, {
     method: 'DELETE',
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to delete material')
-  }
 }
 
-// Progress API
+// ─── Progress API ────────────────────────────────────────
+
 export async function fetchProgress(
   category: string,
   statusFilter?: string[]
 ): Promise<{ stats: ProgressStats; entries: ProgressEntry[] }> {
-  let url = `${API_BASE}/progress/${category}`
+  let url = `/progress/${category}`
   if (statusFilter && statusFilter.length > 0) {
-    url += `?status_filter=${statusFilter.join(',')}`
+    const params = new URLSearchParams({ status_filter: statusFilter.join(',') })
+    url += `?${params}`
   }
-  const res = await fetch(url)
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to fetch progress')
-  }
-  return await res.json()
+  return apiFetch(url)
 }
 
 export async function updateProgress(
   category: string,
   progressId: string,
   data: {
-    status: string
+    status: ProgressEntry['status']
     name?: string
     comment?: string
     related_sections?: RelatedSection[]
   }
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/progress/${category}/${progressId}`, {
+  await apiFetch<void>(`/progress/${category}/${progressId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to update progress')
-  }
 }
 
 export async function createProgress(
@@ -154,40 +142,31 @@ export async function createProgress(
   data: {
     progress_id: string
     name: string
-    status?: string
+    status?: ProgressEntry['status']
     comment?: string
     related_sections?: RelatedSection[]
   }
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/progress/${category}`, {
+  await apiFetch<void>(`/progress/${category}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to create progress')
-  }
 }
 
 export async function deleteProgress(category: string, progressId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/progress/${category}/${progressId}`, {
+  await apiFetch<void>(`/progress/${category}/${progressId}`, {
     method: 'DELETE',
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to delete progress')
-  }
 }
 
-// Convert API
+// ─── Convert API ─────────────────────────────────────────
+
 export async function getConvertConfig(): Promise<{
   configured: boolean
   api_base: string
   model_version: string
 }> {
-  const res = await fetch(`${API_BASE}/convert/config`)
-  return await res.json()
+  return apiFetch('/convert/config')
 }
 
 export async function startConversion(
@@ -202,15 +181,10 @@ export async function startConversion(
     formData.append('output_filename', outputFilename)
   }
 
-  const res = await fetch(`${API_BASE}/convert/upload`, {
+  return apiFetch('/convert/upload', {
     method: 'POST',
     body: formData,
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to start conversion')
-  }
-  return await res.json()
 }
 
 export async function getConversionStatus(taskId: string): Promise<{
@@ -221,21 +195,16 @@ export async function getConversionStatus(taskId: string): Promise<{
   result?: { output_path: string; line_count: number; has_images: boolean }
   error?: string
 }> {
-  const res = await fetch(`${API_BASE}/convert/status/${taskId}`)
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to get status')
-  }
-  return await res.json()
+  return apiFetch(`/convert/status/${taskId}`)
 }
 
-// Tasks API (Agent operations with WebSocket progress)
+// ─── Tasks API ───────────────────────────────────────────
+
 export async function getTasksConfigStatus(): Promise<{
   llm: { configured: boolean; model: string; base_url: string }
   mineru: { configured: boolean; model_version: string }
 }> {
-  const res = await fetch(`${API_BASE}/tasks/config/status`)
-  return await res.json()
+  return apiFetch('/tasks/config/status')
 }
 
 export async function generateIndex(
@@ -243,32 +212,22 @@ export async function generateIndex(
   material: string,
   sessionId: string
 ): Promise<{ task_id: string }> {
-  const res = await fetch(`${API_BASE}/tasks/generate-index?session_id=${sessionId}`, {
+  const params = new URLSearchParams({ session_id: sessionId })
+  return apiFetch(`/tasks/generate-index?${params}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ category, material }),
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to start index generation')
-  }
-  return await res.json()
 }
 
 export async function initProgress(
   category: string,
   sessionId: string
 ): Promise<{ task_id: string }> {
-  const res = await fetch(`${API_BASE}/tasks/init-progress?session_id=${sessionId}`, {
+  const params = new URLSearchParams({ session_id: sessionId })
+  return apiFetch(`/tasks/init-progress?${params}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ category }),
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to start progress init')
-  }
-  return await res.json()
 }
 
 export async function fullInit(
@@ -276,23 +235,19 @@ export async function fullInit(
   sessionId: string,
   options?: { material_path?: string; new_category?: boolean }
 ): Promise<{ task_id: string }> {
-  const res = await fetch(`${API_BASE}/tasks/full-init?session_id=${sessionId}`, {
+  const params = new URLSearchParams({ session_id: sessionId })
+  return apiFetch(`/tasks/full-init?${params}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       category,
       material_path: options?.material_path,
       new_category: options?.new_category,
     }),
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to start full init')
-  }
-  return await res.json()
 }
 
-// Upload material (unified: MD direct import, others via MinerU)
+// ─── Upload API ──────────────────────────────────────────
+
 export async function uploadMaterial(
   category: string,
   file: File,
@@ -312,46 +267,21 @@ export async function uploadMaterial(
     formData.append('session_id', sessionId)
   }
 
-  const res = await fetch(`${API_BASE}/materials/${category}/upload`, {
+  return apiFetch(`/materials/${category}/upload`, {
     method: 'POST',
     body: formData,
   })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to upload material')
-  }
-  return await res.json()
 }
 
-// Axios-like wrapper for components that use api.get()
-export const api = {
-  async get(url: string) {
-    const res = await fetch(`${API_BASE}${url}`)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Request failed' }))
-      throw new Error(err.detail || 'Request failed')
-    }
-    return { data: await res.json() }
-  },
-}
-
-// Workspace API
-export interface WorkspaceFile {
-  path: string
-  type: 'file'
-  size: number
-}
+// ─── Workspace API ───────────────────────────────────────
 
 export async function listWorkspaceFiles(
   category: string,
   progressId: string
 ): Promise<WorkspaceFile[]> {
-  const res = await fetch(`${API_BASE}/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/files`)
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to list workspace files')
-  }
-  const data = await res.json()
+  const data = await apiFetch<{ files: WorkspaceFile[] }>(
+    `/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/files`
+  )
   return data.files
 }
 
@@ -361,12 +291,9 @@ export async function readWorkspaceFile(
   filePath: string = 'note.md'
 ): Promise<{ content: string; truncated: boolean }> {
   const params = new URLSearchParams({ file_path: filePath })
-  const res = await fetch(`${API_BASE}/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file?${params}`)
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to read workspace file')
-  }
-  const data = await res.json()
+  const data = await apiFetch<{ content: string; truncated: boolean }>(
+    `/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file?${params}`
+  )
   return { content: data.content, truncated: data.truncated }
 }
 
@@ -376,15 +303,13 @@ export async function writeWorkspaceFile(
   filePath: string,
   content: string
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file_path: filePath, content }),
-  })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to write workspace file')
-  }
+  await apiFetch<void>(
+    `/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ file_path: filePath, content }),
+    }
+  )
 }
 
 export async function deleteWorkspaceFile(
@@ -393,11 +318,50 @@ export async function deleteWorkspaceFile(
   filePath: string
 ): Promise<void> {
   const params = new URLSearchParams({ file_path: filePath })
-  const res = await fetch(`${API_BASE}/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file?${params}`, {
-    method: 'DELETE',
-  })
-  if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.detail || 'Failed to delete workspace file')
-  }
+  await apiFetch<void>(
+    `/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/file?${params}`,
+    { method: 'DELETE' }
+  )
+}
+
+// ─── Workspace History API ──────────────────────────────────
+
+export async function listFileHistory(
+  category: string,
+  progressId: string,
+  filePath: string
+): Promise<FileVersion[]> {
+  const params = new URLSearchParams({ file_path: filePath })
+  const data = await apiFetch<{ versions: FileVersion[] }>(
+    `/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/history?${params}`
+  )
+  return data.versions
+}
+
+export async function getFileVersion(
+  category: string,
+  progressId: string,
+  filePath: string,
+  versionId: string
+): Promise<string> {
+  const params = new URLSearchParams({ file_path: filePath, version_id: versionId })
+  const data = await apiFetch<{ content: string }>(
+    `/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/history/version?${params}`
+  )
+  return data.content
+}
+
+export async function rollbackFile(
+  category: string,
+  progressId: string,
+  filePath: string,
+  versionId: string
+): Promise<void> {
+  await apiFetch<void>(
+    `/workspace/${encodeURIComponent(category)}/${encodeURIComponent(progressId)}/history/rollback`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ file_path: filePath, version_id: versionId }),
+    }
+  )
 }

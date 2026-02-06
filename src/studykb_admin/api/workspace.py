@@ -16,6 +16,12 @@ class FileWriteRequest(BaseModel):
     content: str
 
 
+class RollbackRequest(BaseModel):
+    """Request body for rolling back a file to a previous version."""
+    file_path: str
+    version_id: str
+
+
 class FileInfo(BaseModel):
     """File information."""
     path: str
@@ -25,15 +31,7 @@ class FileInfo(BaseModel):
 
 @router.get("/{category}/{progress_id}/files")
 async def list_workspace_files(category: str, progress_id: str):
-    """List all files in a workspace.
-
-    Args:
-        category: Category name
-        progress_id: Progress node ID (dots will be converted to underscores)
-
-    Returns:
-        List of files with path, type, and size
-    """
+    """List all files in a workspace."""
     service = WorkspaceService()
 
     files = await service.list_files(category=category, progress_id=progress_id)
@@ -53,18 +51,7 @@ async def read_workspace_file(
     start_line: Optional[int] = Query(default=None, description="Start line (1-based)"),
     end_line: Optional[int] = Query(default=None, description="End line (1-based)"),
 ):
-    """Read a file from workspace.
-
-    Args:
-        category: Category name
-        progress_id: Progress node ID
-        file_path: Relative file path within workspace (default: note.md)
-        start_line: Optional start line number (1-based)
-        end_line: Optional end line number (1-based)
-
-    Returns:
-        File content as string
-    """
+    """Read a file from workspace."""
     service = WorkspaceService()
 
     try:
@@ -80,7 +67,6 @@ async def read_workspace_file(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Join lines to content string
     content = "\n".join(line_content for _, line_content in lines)
 
     return {
@@ -101,16 +87,7 @@ async def write_workspace_file(
     progress_id: str,
     body: FileWriteRequest,
 ):
-    """Create or overwrite a file in workspace.
-
-    Args:
-        category: Category name
-        progress_id: Progress node ID
-        body: Request body with file_path and content
-
-    Returns:
-        Success message
-    """
+    """Create or overwrite a file in workspace."""
     service = WorkspaceService()
 
     try:
@@ -140,16 +117,7 @@ async def delete_workspace_file(
     progress_id: str,
     file_path: str = Query(..., description="File path to delete"),
 ):
-    """Delete a file from workspace.
-
-    Args:
-        category: Category name
-        progress_id: Progress node ID
-        file_path: File path to delete
-
-    Returns:
-        Success message
-    """
+    """Delete a file from workspace."""
     service = WorkspaceService()
 
     try:
@@ -170,4 +138,93 @@ async def delete_workspace_file(
         "category": category,
         "progress_id": progress_id,
         "file_path": file_path,
+    }
+
+
+# ── History endpoints ────────────────────────────────────────
+
+
+@router.get("/{category}/{progress_id}/history")
+async def list_file_history(
+    category: str,
+    progress_id: str,
+    file_path: str = Query(..., description="File path to get history for"),
+):
+    """List version history for a workspace file (newest first)."""
+    service = WorkspaceService()
+
+    versions = await service.list_file_history(
+        category=category,
+        progress_id=progress_id,
+        file_path=file_path,
+    )
+
+    return {
+        "category": category,
+        "progress_id": progress_id,
+        "file_path": file_path,
+        "versions": versions,
+    }
+
+
+@router.get("/{category}/{progress_id}/history/version")
+async def get_file_version(
+    category: str,
+    progress_id: str,
+    file_path: str = Query(..., description="File path"),
+    version_id: str = Query(..., description="Version ID (timestamp)"),
+):
+    """Get the content of a specific historical version."""
+    service = WorkspaceService()
+
+    try:
+        content = await service.get_file_version(
+            category=category,
+            progress_id=progress_id,
+            file_path=file_path,
+            version_id=version_id,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return {
+        "category": category,
+        "progress_id": progress_id,
+        "file_path": file_path,
+        "version_id": version_id,
+        "content": content,
+    }
+
+
+@router.post("/{category}/{progress_id}/history/rollback")
+async def rollback_file(
+    category: str,
+    progress_id: str,
+    body: RollbackRequest,
+):
+    """Rollback a file to a previous version.
+
+    The current file content is automatically saved as a new snapshot
+    before the rollback is applied.
+    """
+    service = WorkspaceService()
+
+    try:
+        await service.rollback_file(
+            category=category,
+            progress_id=progress_id,
+            file_path=body.file_path,
+            version_id=body.version_id,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {
+        "success": True,
+        "category": category,
+        "progress_id": progress_id,
+        "file_path": body.file_path,
+        "rolled_back_to": body.version_id,
     }

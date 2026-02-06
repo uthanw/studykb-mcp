@@ -5,7 +5,11 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
+      redirect: '/categories',
+    },
+    {
+      path: '/categories/:name?',
+      name: 'categories',
       component: () => import('./views/CategoryManagerView.vue'),
     },
     {

@@ -4,14 +4,11 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 
 const navItems = [
-  { path: '/', name: '分类管理', icon: 'folder', exact: true },
-  { path: '/settings', name: '设置', icon: 'settings', exact: true },
+  { path: '/categories', name: '分类管理', icon: 'folder' },
+  { path: '/settings', name: '设置', icon: 'settings' },
 ]
 
-const isActive = (item: { path: string; exact: boolean }) => {
-  if (item.exact) {
-    return route.path === item.path
-  }
+const isActive = (item: { path: string }) => {
   return route.path.startsWith(item.path)
 }
 </script>
