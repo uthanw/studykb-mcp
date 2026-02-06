@@ -1,9 +1,10 @@
 """MCP Server implementation for StudyKB."""
 
 import asyncio
+import contextlib
 
 from mcp.server import Server
-from mcp.server.sse import SseServerTransport
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.types import TextContent, Tool
 
 from .tools.grep import grep_handler
@@ -674,52 +675,42 @@ async def _handle_batch_call(arguments: dict) -> list[TextContent]:
     return [TextContent(type="text", text=combined)]
 
 
-# SSE transport
-sse_transport = SseServerTransport("/messages/")
+# Streamable HTTP transport
+session_manager = StreamableHTTPSessionManager(app=server)
 
 
 # Create ASGI app
 from starlette.applications import Starlette
-from starlette.routing import Route, Mount
-from starlette.responses import Response
-from starlette.middleware import Middleware
+from starlette.routing import Mount
 from starlette.middleware.cors import CORSMiddleware
 
 
-async def handle_sse(request):
-    """SSE endpoint handler.
-
-    Note: Must return a Response to avoid 'NoneType' error when client disconnects.
-    """
-    async with sse_transport.connect_sse(
-        request.scope, request.receive, request._send
-    ) as streams:
-        await server.run(
-            streams[0], streams[1], server.create_initialization_options()
-        )
-    # Return empty response to fix NoneType error
-    return Response()
+@contextlib.asynccontextmanager
+async def lifespan(app_instance: Starlette):
+    async with session_manager.run():
+        yield
 
 
 app = Starlette(
     routes=[
-        Route("/sse", endpoint=handle_sse),
-        Mount("/messages/", app=sse_transport.handle_post_message),
+        Mount("/mcp", app=session_manager.handle_request),
     ],
-    middleware=[
-        Middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-    ],
+    lifespan=lifespan,
+)
+
+# Add CORS for browser clients
+app = CORSMiddleware(
+    app,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["*"],
+    expose_headers=["Mcp-Session-Id"],
 )
 
 
 async def run_server(host: str = "0.0.0.0", port: int = 8080) -> None:
-    """Run the MCP server with SSE transport."""
+    """Run the MCP server with Streamable HTTP transport."""
     import uvicorn
     config = uvicorn.Config(app, host=host, port=port, log_level="info")
     server_instance = uvicorn.Server(config)
