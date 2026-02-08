@@ -208,6 +208,21 @@ export const useCategoryStore = defineStore('category', () => {
     }
   }
 
+  // Index preview state
+  const indexPreview = ref<{ category: string; material: string } | null>(null)
+
+  function previewIndex(material: string) {
+    if (!selectedCategoryName.value) return
+    indexPreview.value = {
+      category: selectedCategoryName.value,
+      material,
+    }
+  }
+
+  function closeIndexPreview() {
+    indexPreview.value = null
+  }
+
   return {
     // State
     categories,
@@ -232,5 +247,9 @@ export const useCategoryStore = defineStore('category', () => {
     upload,
     genIndex,
     initProgressAction,
+    // Index preview
+    indexPreview,
+    previewIndex,
+    closeIndexPreview,
   }
 })

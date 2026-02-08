@@ -221,27 +221,48 @@ class BaseAgent(ABC):
                 f"[dim](↑{_format_tokens(self._total_input_tokens)} ↓{_format_tokens(self._total_output_tokens)} tokens)[/dim]"
             )
 
+    def _is_websocket_console(self) -> bool:
+        """检测 console 是否为 WebSocketConsole（非 Rich Console）。"""
+        return not isinstance(self.console, Console)
+
     async def _show_elapsed_timer(self) -> None:
         """显示持续运行的总计时器和 token 统计。"""
         spinner_chars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
         spinner_idx = 0
 
-        with Live(console=self.console, refresh_per_second=4, transient=True) as live:
+        if self._is_websocket_console():
+            # WebSocket 模式：定期通过 print 发送进度消息
             while self._timer_running:
                 elapsed = time.time() - self._start_time
                 spinner = spinner_chars[spinner_idx % len(spinner_chars)]
                 spinner_idx += 1
 
-                text = Text()
-                text.append(f"{spinner} ", style="cyan")
-                text.append("分析中 ", style="bold")
-                text.append(f"[{elapsed:.1f}s] ", style="cyan dim")
-                text.append(f"ctx:{_format_tokens(self._current_context_tokens)} ", style="magenta dim")
-                text.append(f"↑{_format_tokens(self._total_input_tokens)} ", style="yellow dim")
-                text.append(f"↓{_format_tokens(self._total_output_tokens)}", style="green dim")
-                live.update(text)
+                status_text = (
+                    f"{spinner} 分析中 [{elapsed:.1f}s] "
+                    f"ctx:{_format_tokens(self._current_context_tokens)} "
+                    f"↑{_format_tokens(self._total_input_tokens)} "
+                    f"↓{_format_tokens(self._total_output_tokens)}"
+                )
+                self.console.print(status_text)
+                await asyncio.sleep(2)  # WebSocket 模式下降低频率，避免消息过多
+        else:
+            # Rich Console 模式：使用 Live 实时刷新
+            with Live(console=self.console, refresh_per_second=4, transient=True) as live:
+                while self._timer_running:
+                    elapsed = time.time() - self._start_time
+                    spinner = spinner_chars[spinner_idx % len(spinner_chars)]
+                    spinner_idx += 1
 
-                await asyncio.sleep(0.25)
+                    text = Text()
+                    text.append(f"{spinner} ", style="cyan")
+                    text.append("分析中 ", style="bold")
+                    text.append(f"[{elapsed:.1f}s] ", style="cyan dim")
+                    text.append(f"ctx:{_format_tokens(self._current_context_tokens)} ", style="magenta dim")
+                    text.append(f"↑{_format_tokens(self._total_input_tokens)} ", style="yellow dim")
+                    text.append(f"↓{_format_tokens(self._total_output_tokens)}", style="green dim")
+                    live.update(text)
+
+                    await asyncio.sleep(0.25)
 
     async def _call_llm(
         self, messages: list[dict[str, Any]], max_retries: int = 3

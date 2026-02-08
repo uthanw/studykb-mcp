@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { cancelTask } from '../api'
 
 interface TaskLog {
-  type: 'log' | 'status' | 'progress' | 'tool_call' | 'error' | 'complete'
+  type: 'log' | 'status' | 'progress' | 'tool_call' | 'tool_result' | 'error' | 'complete'
   content: string
   timestamp: Date
   active?: boolean
@@ -152,6 +153,24 @@ function clearCompleted() {
   tasks.value = tasks.value.filter(t => t.status === 'running')
 }
 
+// Cancel running task
+const cancelling = ref(false)
+async function cancelRunningTask() {
+  cancelling.value = true
+  try {
+    // Send cancel via WebSocket
+    if (ws.value?.readyState === WebSocket.OPEN) {
+      ws.value.send(JSON.stringify({ type: 'cancel' }))
+    }
+    // Also call HTTP endpoint as backup
+    await cancelTask(sessionId.value)
+  } catch (e) {
+    console.error('Cancel failed:', e)
+  } finally {
+    cancelling.value = false
+  }
+}
+
 // Scroll to bottom
 function scrollToBottom() {
   setTimeout(() => {
@@ -219,13 +238,23 @@ onUnmounted(() => {
           <span class="text-xs text-sky-400">运行中</span>
         </span>
       </div>
-      <button
-        v-if="tasks.some(t => t.status !== 'running')"
-        class="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-        @click.stop="clearCompleted"
-      >
-        清除已完成
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          v-if="tasks.some(t => t.status === 'running')"
+          class="text-xs text-red-400 hover:text-red-300 transition-colors px-1.5 py-0.5 rounded hover:bg-red-500/10"
+          :disabled="cancelling"
+          @click.stop="cancelRunningTask"
+        >
+          {{ cancelling ? '中断中...' : '中断任务' }}
+        </button>
+        <button
+          v-if="tasks.some(t => t.status !== 'running')"
+          class="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          @click.stop="clearCompleted"
+        >
+          清除已完成
+        </button>
+      </div>
     </div>
 
     <!-- Content -->

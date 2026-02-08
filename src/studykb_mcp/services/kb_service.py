@@ -120,8 +120,13 @@ class KBService:
         Returns:
             True if index file exists
         """
-        index_name = material_name.replace(".md", "_index.md")
-        return await aiofiles.os.path.exists(category_path / index_name)
+        stem = material_name.replace(".md", "")
+        # CSV 优先，MD 回退
+        csv_path = category_path / f"{stem}_index.csv"
+        if await aiofiles.os.path.exists(csv_path):
+            return True
+        md_path = category_path / f"{stem}_index.md"
+        return await aiofiles.os.path.exists(md_path)
 
     async def read_file_range(
         self,
@@ -183,14 +188,22 @@ class KBService:
         Returns:
             Index file content, or None if not found
         """
-        index_name = material.replace(".md", "_index.md")
-        index_path = self.kb_path / category / index_name
+        stem = material.replace(".md", "")
+        category_path = self.kb_path / category
 
-        if not await aiofiles.os.path.exists(index_path):
-            return None
+        # CSV 优先
+        csv_path = category_path / f"{stem}_index.csv"
+        if await aiofiles.os.path.exists(csv_path):
+            async with aiofiles.open(csv_path, "r", encoding="utf-8") as f:
+                return await f.read()
 
-        async with aiofiles.open(index_path, "r", encoding="utf-8") as f:
-            return await f.read()
+        # MD 回退
+        md_path = category_path / f"{stem}_index.md"
+        if await aiofiles.os.path.exists(md_path):
+            async with aiofiles.open(md_path, "r", encoding="utf-8") as f:
+                return await f.read()
+
+        return None
 
     async def grep(
         self,

@@ -101,7 +101,9 @@ function handleDrop(event: DragEvent) {
           <div class="flex items-center gap-2">
             <span
               v-if="mat.has_index"
-              class="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded"
+              class="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded cursor-pointer hover:bg-green-500/30 transition-colors"
+              title="查看索引"
+              @click.stop="store.previewIndex(mat.name)"
             >
               索引
             </span>

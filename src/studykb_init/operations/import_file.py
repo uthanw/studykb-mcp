@@ -112,9 +112,12 @@ async def save_index(
     if not material_path.exists():
         return False, f"资料 '{material}' 不存在"
 
-    index_path = category_path / f"{material}_index.md"
+    index_path = category_path / f"{material}_index.csv"
 
-    if index_path.exists() and not overwrite:
+    # 检查 CSV 和旧 MD 索引是否已存在
+    old_md_index = category_path / f"{material}_index.md"
+    existing = index_path.exists() or old_md_index.exists()
+    if existing and not overwrite:
         return False, f"索引文件已存在: {index_path}"
 
     try:
@@ -137,13 +140,23 @@ async def read_index(category: str, material: str) -> Optional[str]:
         Index content if exists, None otherwise.
     """
     kb_path = _get_kb_path()
-    index_path = kb_path / category / f"{material}_index.md"
 
-    if not index_path.exists():
+    # CSV 优先
+    csv_path = kb_path / category / f"{material}_index.csv"
+    if csv_path.exists():
+        try:
+            with open(csv_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception:
+            return None
+
+    # MD 回退
+    md_path = kb_path / category / f"{material}_index.md"
+    if not md_path.exists():
         return None
 
     try:
-        with open(index_path, "r", encoding="utf-8") as f:
+        with open(md_path, "r", encoding="utf-8") as f:
             return f.read()
     except Exception:
         return None
@@ -174,12 +187,13 @@ async def get_file_info(category: str, material: str) -> Optional[dict]:
         with open(file_path, "r", encoding="utf-8") as f:
             line_count = sum(1 for _ in f)
 
-        index_path = kb_path / category / f"{material}_index.md"
+        index_csv = kb_path / category / f"{material}_index.csv"
+        index_md = kb_path / category / f"{material}_index.md"
 
         return {
             "name": material,
             "line_count": line_count,
-            "has_index": index_path.exists(),
+            "has_index": index_csv.exists() or index_md.exists(),
             "path": str(file_path),
         }
     except Exception:

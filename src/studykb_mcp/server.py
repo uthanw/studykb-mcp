@@ -271,6 +271,11 @@ TOOLS = [
 - 准备用 read_file 读取内容前，先查行号
 - 需要搜寻例题/教科书标准定义
 
+📄 返回格式：
+- CSV 格式索引数据，字段: type,depth,number,title,start,end,tags
+- 行类型: #meta(元信息), overview(概览), chapter(章节), lookup(快速查找)
+- depth: 0=章, 1=节, 2=小节; tags 用 ; 分隔
+
 🔗 推荐前置调用：
 - read_overview：确认资料存在且有 [IDX] 标记
 

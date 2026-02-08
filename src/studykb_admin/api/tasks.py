@@ -27,6 +27,9 @@ router = APIRouter()
 # Store active CLI sessions
 cli_sessions: dict[str, dict] = {}
 
+# Store active background tasks for cancellation
+active_tasks: dict[str, asyncio.Task] = {}
+
 
 class CLIMessage(BaseModel):
     """Message structure for CLI WebSocket communication."""
@@ -255,9 +258,17 @@ async def cli_websocket(websocket: WebSocket, session_id: str):
     try:
         while True:
             data = await websocket.receive_json()
-            # Handle incoming commands if needed
+            # Handle incoming commands
             if data.get("type") == "cancel":
                 cli_sessions[session_id]["active"] = False
+                # Cancel the running background task
+                task = active_tasks.get(session_id)
+                if task and not task.done():
+                    task.cancel()
+                    await send_to_session(session_id, {
+                        "type": "error",
+                        "content": "任务已被用户中断",
+                    })
 
     except WebSocketDisconnect:
         if session_id in cli_sessions:
@@ -290,6 +301,20 @@ async def get_config_status():
             "model_version": settings.mineru.model_version,
         },
     }
+
+
+@router.post("/cancel")
+async def cancel_task(session_id: str):
+    """Cancel a running background task for the given session."""
+    task = active_tasks.get(session_id)
+    if task and not task.done():
+        task.cancel()
+        await send_to_session(session_id, {
+            "type": "error",
+            "content": "任务已被用户中断",
+        })
+        return {"success": True, "message": "任务已中断"}
+    return {"success": False, "message": "没有正在运行的任务"}
 
 
 @router.get("/categories")
@@ -385,7 +410,12 @@ async def generate_index(request: IndexRequest, session_id: str):
                 "content": f"Agent 执行失败: {str(e)}",
             })
 
-    asyncio.create_task(run_index_agent())
+    bg_task = asyncio.create_task(run_index_agent())
+    active_tasks[session_id] = bg_task
+
+    def _cleanup(t: asyncio.Task):
+        active_tasks.pop(session_id, None)
+    bg_task.add_done_callback(_cleanup)
 
     return {"task_id": task_id, "message": "索引生成任务已启动"}
 
@@ -495,7 +525,12 @@ async def init_progress(request: ProgressInitRequest, session_id: str):
                 "content": f"Agent 执行失败: {str(e)}",
             })
 
-    asyncio.create_task(run_progress_agent())
+    bg_task = asyncio.create_task(run_progress_agent())
+    active_tasks[session_id] = bg_task
+
+    def _cleanup(t: asyncio.Task):
+        active_tasks.pop(session_id, None)
+    bg_task.add_done_callback(_cleanup)
 
     return {"task_id": task_id, "message": "进度初始化任务已启动"}
 
@@ -656,6 +691,11 @@ async def full_init(request: FullInitRequest, session_id: str):
                 "content": f"初始化失败: {str(e)}",
             })
 
-    asyncio.create_task(run_full_init())
+    bg_task = asyncio.create_task(run_full_init())
+    active_tasks[session_id] = bg_task
+
+    def _cleanup(t: asyncio.Task):
+        active_tasks.pop(session_id, None)
+    bg_task.add_done_callback(_cleanup)
 
     return {"task_id": task_id, "message": "完整初始化任务已启动"}

@@ -156,9 +156,10 @@ class ProgressAgent(BaseAgent):
                 except Exception:
                     line_count = 0
 
-                # Check if index exists
-                index_file = f.with_name(f.stem + "_index.md")
-                has_index = index_file.exists()
+                # Check if index exists (CSV or MD)
+                index_csv = f.with_name(f.stem + "_index.csv")
+                index_md = f.with_name(f.stem + "_index.md")
+                has_index = index_csv.exists() or index_md.exists()
                 idx_mark = " [IDX]" if has_index else ""
 
                 files.append(f"  - {f.name} ({line_count} 行){idx_mark}")

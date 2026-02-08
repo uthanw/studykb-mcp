@@ -56,6 +56,39 @@ export interface FileVersion {
   lines: number
 }
 
+// ─── Index Types ──────────────────────────────────────────
+
+export interface IndexChapter {
+  depth: number
+  number: string
+  title: string
+  start: number
+  end: number
+  tags: string
+}
+
+export interface IndexOverview {
+  title: string
+  start: number
+  end: number
+  tags: string
+}
+
+export interface IndexLookup {
+  title: string
+  start: number
+  end: number
+  keywords: string
+  section: string
+}
+
+export interface ParsedIndex {
+  meta: Record<string, string>
+  overview: IndexOverview[]
+  chapters: IndexChapter[]
+  lookups: IndexLookup[]
+}
+
 // ─── Categories API ──────────────────────────────────────
 
 export async function fetchCategories(): Promise<Category[]> {
@@ -96,9 +129,13 @@ export async function fetchMaterialContent(
   return apiFetch(`/materials/${category}/${material}/content?${params}`)
 }
 
-export async function fetchMaterialIndex(category: string, material: string): Promise<string> {
-  const data = await apiFetch<{ content: string }>(`/materials/${category}/${material}/index`)
-  return data.content
+export async function fetchMaterialIndex(
+  category: string,
+  material: string,
+  format: 'raw' | 'parsed' = 'parsed'
+): Promise<{ content?: string; parsed?: ParsedIndex; format: string }> {
+  const params = new URLSearchParams({ format })
+  return apiFetch(`/materials/${category}/${material}/index?${params}`)
 }
 
 export async function deleteMaterial(category: string, material: string): Promise<void> {
@@ -217,6 +254,11 @@ export async function generateIndex(
     method: 'POST',
     body: JSON.stringify({ category, material }),
   })
+}
+
+export async function cancelTask(sessionId: string): Promise<{ success: boolean; message: string }> {
+  const params = new URLSearchParams({ session_id: sessionId })
+  return apiFetch(`/tasks/cancel?${params}`, { method: 'POST' })
 }
 
 export async function initProgress(

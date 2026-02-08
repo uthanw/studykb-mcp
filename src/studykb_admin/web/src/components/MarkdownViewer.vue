@@ -2,12 +2,38 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
+import katex from 'katex'
 
 const props = defineProps<{
   content: string
 }>()
 
 const container = ref<HTMLElement | null>(null)
+
+// KaTeX: pre-process LaTeX before marked parses it
+// Replace $$ ... $$ (display) and $ ... $ (inline) with rendered HTML
+function renderLatex(text: string): string {
+  // Display math: $$ ... $$ (possibly multiline)
+  text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_, tex) => {
+    try {
+      return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false })
+    } catch {
+      return `<span class="katex-error">${tex}</span>`
+    }
+  })
+
+  // Inline math: $ ... $ (but not $$ and not inside code)
+  // Negative lookbehind for \ and $, negative lookahead for $
+  text = text.replace(/(?<!\$)\$(?!\$)((?:[^$\\]|\\.)+?)\$(?!\$)/g, (_, tex) => {
+    try {
+      return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false })
+    } catch {
+      return `<span class="katex-error">${tex}</span>`
+    }
+  })
+
+  return text
+}
 
 // Configure marked with custom renderer for code highlighting
 const renderer = new marked.Renderer()
@@ -26,6 +52,16 @@ renderer.code = function({ text, lang }: { text: string; lang?: string }) {
   return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`
 }
 
+// Don't let marked escape LaTeX HTML output
+const originalParagraph = renderer.paragraph.bind(renderer)
+renderer.paragraph = function(token: any) {
+  // If the paragraph contains KaTeX output, return it without further escaping
+  if (typeof token === 'object' && token.text && token.text.includes('class="katex')) {
+    return `<p>${token.text}</p>`
+  }
+  return originalParagraph(token)
+}
+
 marked.setOptions({
   renderer,
   breaks: true,
@@ -35,7 +71,9 @@ marked.setOptions({
 const renderedHtml = computed(() => {
   if (!props.content) return ''
   try {
-    return marked(props.content) as string
+    // First render LaTeX, then pass to marked
+    const withLatex = renderLatex(props.content)
+    return marked(withLatex) as string
   } catch (e) {
     console.error('Markdown render error:', e)
     return `<pre>${props.content}</pre>`
@@ -43,22 +81,20 @@ const renderedHtml = computed(() => {
 })
 
 // Re-highlight code blocks after render
-watch(renderedHtml, () => {
-  setTimeout(() => {
-    if (container.value) {
-      container.value.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block as HTMLElement)
-      })
-    }
-  }, 0)
-})
-
-onMounted(() => {
+function highlightCode() {
   if (container.value) {
     container.value.querySelectorAll('pre code').forEach((block) => {
       hljs.highlightElement(block as HTMLElement)
     })
   }
+}
+
+watch(renderedHtml, () => {
+  setTimeout(highlightCode, 0)
+})
+
+onMounted(() => {
+  setTimeout(highlightCode, 0)
 })
 </script>
 
@@ -69,6 +105,8 @@ onMounted(() => {
 <style>
 /* Import highlight.js dark theme */
 @import 'highlight.js/styles/github-dark.css';
+/* Import KaTeX styles */
+@import 'katex/dist/katex.min.css';
 
 .markdown-viewer {
   color: #e2e8f0;
@@ -200,5 +238,18 @@ onMounted(() => {
 /* Task list styles */
 .markdown-viewer input[type="checkbox"] {
   margin-right: 0.5em;
+}
+
+/* KaTeX display math centering */
+.markdown-viewer .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.markdown-viewer .katex-error {
+  color: #f87171;
+  font-family: monospace;
+  font-size: 0.85em;
 }
 </style>

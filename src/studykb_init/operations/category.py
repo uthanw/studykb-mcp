@@ -106,9 +106,10 @@ async def get_category_materials(category: str) -> list[dict]:
             with open(item, "r", encoding="utf-8") as f:
                 line_count = sum(1 for _ in f)
 
-            # Check for index file
-            index_path = category_path / f"{material_name}_index.md"
-            has_index = index_path.exists()
+            # Check for index file (CSV or MD)
+            index_csv = category_path / f"{material_name}_index.csv"
+            index_md = category_path / f"{material_name}_index.md"
+            has_index = index_csv.exists() or index_md.exists()
 
             materials.append(
                 {

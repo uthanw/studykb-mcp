@@ -15,6 +15,8 @@ import ProgressStatsHeader from '../components/category/ProgressStatsHeader.vue'
 import ProgressEntryList from '../components/category/ProgressEntryList.vue'
 import ProgressDetailPanel from '../components/category/ProgressDetailPanel.vue'
 import NewCategoryModal from '../components/category/NewCategoryModal.vue'
+import IndexTreeViewer from '../components/category/IndexTreeViewer.vue'
+import AppModal from '../components/ui/AppModal.vue'
 
 // Stores
 const categoryStore = useCategoryStore()
@@ -276,6 +278,21 @@ onMounted(() => {
 
     <!-- New Category Modal -->
     <NewCategoryModal v-model:visible="showNewCategoryModal" />
+
+    <!-- Index Preview Modal -->
+    <AppModal
+      :visible="!!categoryStore.indexPreview"
+      title="章节索引"
+      width="900px"
+      @update:visible="categoryStore.closeIndexPreview()"
+    >
+      <IndexTreeViewer
+        v-if="categoryStore.indexPreview"
+        :category="categoryStore.indexPreview.category"
+        :material="categoryStore.indexPreview.material"
+        @close="categoryStore.closeIndexPreview()"
+      />
+    </AppModal>
   </div>
 </template>
 

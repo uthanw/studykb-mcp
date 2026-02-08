@@ -1,6 +1,8 @@
 """Materials API - CRUD operations for material files."""
 
+import csv
 import uuid
+from io import StringIO
 from pathlib import Path
 from typing import Optional
 
@@ -168,11 +170,12 @@ async def delete_material(category: str, material: str):
     # Delete material file
     material_path.unlink()
 
-    # Delete index file if exists
+    # Delete index files if exist (CSV and MD)
     stem = material_path.stem
-    index_path = category_path / f"{stem}_index.md"
-    if index_path.exists():
-        index_path.unlink()
+    for ext in ["_index.csv", "_index.md"]:
+        index_path = category_path / f"{stem}{ext}"
+        if index_path.exists():
+            index_path.unlink()
 
     return {"success": True, "message": f"Material '{material}' deleted"}
 
@@ -210,8 +213,12 @@ async def get_material_content(
 
 
 @router.get("/{category}/{material}/index")
-async def get_material_index(category: str, material: str):
-    """Get material index content."""
+async def get_material_index(category: str, material: str, format: str = "raw"):
+    """Get material index content.
+
+    Args:
+        format: "raw" returns plain text, "parsed" returns structured JSON (CSV only).
+    """
     from studykb_mcp.services.kb_service import KBService
 
     kb_service = KBService()
@@ -220,4 +227,63 @@ async def get_material_index(category: str, material: str):
     if content is None:
         raise HTTPException(status_code=404, detail=f"Index for '{material}' not found")
 
-    return {"category": category, "material": material, "content": content}
+    if format == "parsed" and content.startswith("#meta"):
+        parsed = parse_index_csv(content)
+        return {"category": category, "material": material, "format": "csv", "parsed": parsed}
+
+    return {"category": category, "material": material, "format": "raw", "content": content}
+
+
+def parse_index_csv(content: str) -> dict:
+    """Parse CSV index content into structured JSON."""
+    meta: dict[str, str] = {}
+    overview: list[dict] = []
+    chapters: list[dict] = []
+    lookups: list[dict] = []
+
+    reader = csv.reader(StringIO(content))
+    for row in reader:
+        if not row or not row[0].strip():
+            continue
+        row_type = row[0].strip()
+
+        try:
+            if row_type == "#meta":
+                meta[row[1].strip()] = row[2].strip() if len(row) > 2 else ""
+            elif row_type == "#type":
+                continue
+            elif row_type == "overview":
+                overview.append({
+                    "title": row[3].strip() if len(row) > 3 else "",
+                    "start": int(row[4]) if len(row) > 4 and row[4].strip() else 0,
+                    "end": int(row[5]) if len(row) > 5 and row[5].strip() else 0,
+                    "tags": row[6].strip() if len(row) > 6 else "",
+                })
+            elif row_type == "chapter":
+                chapters.append({
+                    "depth": int(row[1]) if len(row) > 1 and row[1].strip() else 0,
+                    "number": row[2].strip() if len(row) > 2 else "",
+                    "title": row[3].strip() if len(row) > 3 else "",
+                    "start": int(row[4]) if len(row) > 4 and row[4].strip() else 0,
+                    "end": int(row[5]) if len(row) > 5 and row[5].strip() else 0,
+                    "tags": row[6].strip() if len(row) > 6 else "",
+                })
+            elif row_type == "lookup":
+                tags_raw = row[6].strip() if len(row) > 6 else ""
+                parts = tags_raw.split("|")
+                lookups.append({
+                    "title": row[3].strip() if len(row) > 3 else "",
+                    "start": int(row[4]) if len(row) > 4 and row[4].strip() else 0,
+                    "end": int(row[5]) if len(row) > 5 and row[5].strip() else 0,
+                    "keywords": parts[0] if parts else "",
+                    "section": parts[1] if len(parts) > 1 else "",
+                })
+        except (ValueError, IndexError):
+            continue
+
+    return {
+        "meta": meta,
+        "overview": overview,
+        "chapters": chapters,
+        "lookups": lookups,
+    }
